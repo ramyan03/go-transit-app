@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { Platform } from "react-native";
-import { Home, CalendarDays, Route, TriangleAlert, Train } from "lucide-react-native";
+import { Home, CalendarDays, BellRing, Bookmark, MoreHorizontal } from "lucide-react-native";
 
 export default function TabLayout() {
   return (
@@ -39,28 +39,30 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="routes"
-        options={{
-          title: "Routes",
-          tabBarIcon: ({ color, size }) => <Route color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
         name="alerts"
         options={{
           title: "Alerts",
-          tabBarIcon: ({ color, size }) => (
-            <TriangleAlert color={color} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <BellRing color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="fleet"
+        name="saved"
         options={{
-          title: "Fleet",
-          tabBarIcon: ({ color, size }) => <Train color={color} size={size} />,
+          title: "Saved",
+          tabBarIcon: ({ color, size }) => <Bookmark color={color} size={size} />,
         }}
       />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: "More",
+          tabBarIcon: ({ color, size }) => <MoreHorizontal color={color} size={size} />,
+        }}
+      />
+      {/* Hidden from tab bar — accessible via More screen */}
+      <Tabs.Screen name="routes"  options={{ href: null }} />
+      <Tabs.Screen name="compare" options={{ href: null }} />
+      <Tabs.Screen name="fleet"   options={{ href: null }} />
     </Tabs>
   );
 }

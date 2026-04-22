@@ -10,13 +10,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Search, MapPin, X } from "lucide-react-native";
 import { useState } from "react";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { api, type Stop } from "@/lib/api";
 import { useAppStore } from "@/store/useAppStore";
 
 export default function StationSearchScreen() {
   const [query, setQuery] = useState("");
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
   const { setHomeStation, addSavedStation } = useAppStore();
 
   const { data, isLoading } = useQuery({
@@ -26,13 +27,21 @@ export default function StationSearchScreen() {
     staleTime: 5 * 60_000,
   });
 
+  // Without a search query, show only GO Train stations (2-letter stop_id like UN, MK, OS).
+  // Searching shows all results including bus stops.
+  const isTrainStation = (s: Stop) => /^[A-Z]{2,3}$/.test(s.stop_id);
   const filtered = query
     ? data?.filter((s) => s.stop_name.toLowerCase().includes(query.toLowerCase()))
-    : data;
+    : data?.filter(isTrainStation);
 
   function handleSelect(stop: Stop) {
-    setHomeStation({ stop_id: stop.stop_id, stop_name: stop.stop_name });
-    addSavedStation({ stop_id: stop.stop_id, stop_name: stop.stop_name });
+    const station = { stop_id: stop.stop_id, stop_name: stop.stop_name };
+    if (mode === "saved") {
+      addSavedStation(station);
+    } else {
+      setHomeStation(station);
+      addSavedStation(station);
+    }
     router.back();
   }
 
@@ -41,7 +50,9 @@ export default function StationSearchScreen() {
       {/* Green header */}
       <View style={{ backgroundColor: "#00853F", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ color: "#FFFFFF", fontSize: 22, fontWeight: "700" }}>Choose Station</Text>
+          <Text style={{ color: "#FFFFFF", fontSize: 22, fontWeight: "700" }}>
+            {mode === "saved" ? "Add Station" : "Choose Station"}
+          </Text>
           <TouchableOpacity
             onPress={() => router.back()}
             style={{

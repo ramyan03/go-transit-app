@@ -10,26 +10,28 @@ import { useQuery } from "@tanstack/react-query";
 import { Train, Bus } from "lucide-react-native";
 import { useState } from "react";
 
+import { router } from "expo-router";
 import { api, type Route } from "@/lib/api";
 
-const ROUTE_COLORS: Record<string, string> = {
-  LW: "#009BC9",
-  LE: "#EE3124",
-  ST: "#794500",
-  BR: "#69B143",
-  RH: "#00853F",
-  KI: "#F5A623",
-  MI: "#0070C0",
-  BO: "#8B5A9C",
-  GT: "#F7941D",
-};
-
 function RouteRow({ route }: { route: Route }) {
-  const color = ROUTE_COLORS[route.route_id] ?? `#${route.route_color}`;
+  const color = route.route_color ? `#${route.route_color}` : "#9BB0A0";
   const isTrain = route.route_type === 2;
+
+  function handlePress() {
+    router.push({
+      pathname: "/route-detail",
+      params: {
+        short_name: route.route_short_name,
+        long_name: route.route_long_name,
+        color: route.route_color,
+        route_type: String(route.route_type),
+      },
+    });
+  }
 
   return (
     <TouchableOpacity
+      onPress={handlePress}
       style={{
         flexDirection: "row",
         alignItems: "center",

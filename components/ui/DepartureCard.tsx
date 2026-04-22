@@ -1,21 +1,34 @@
 import { View, Text } from "react-native";
 import { StatusBadge } from "./StatusBadge";
-import type { Departure } from "@/lib/api";
+import { formatTorontoTime, type Departure } from "@/lib/api";
 
+// Keyed by route_short_name (LW, LE, ST…) — matches GTFS route_short_name field.
 const ROUTE_COLORS: Record<string, string> = {
-  LW: "#009BC9",
+  LW: "#98002E",
   LE: "#EE3124",
   ST: "#794500",
   BR: "#69B143",
-  RH: "#00853F",
-  KI: "#F5A623",
-  MI: "#0070C0",
-  BO: "#8B5A9C",
+  RH: "#0099C7",
+  KI: "#F57F25",
+  MI: "#F57F25",
   GT: "#F7941D",
+  BO: "#8B5A9C",
 };
 
 export function DepartureCard({ departure }: { departure: Departure }) {
-  const lineColor = ROUTE_COLORS[departure.route_id] ?? "#9BB0A0";
+  // Prefer GTFS route color from the known map; fall back to hex from proxy.
+  const lineColor =
+    ROUTE_COLORS[departure.route_short_name] ??
+    (departure.route_short_name ? `#9BB0A0` : "#9BB0A0");
+
+  const scheduledStr  = formatTorontoTime(departure.scheduled_departure);
+  const realtimeStr   = departure.realtime_departure
+    ? formatTorontoTime(departure.realtime_departure)
+    : null;
+  const displayTime   = realtimeStr ?? scheduledStr;
+  const delayMinutes  = departure.delay_seconds
+    ? Math.round(departure.delay_seconds / 60)
+    : 0;
 
   return (
     <View
@@ -41,11 +54,14 @@ export function DepartureCard({ departure }: { departure: Departure }) {
             alignItems: "flex-start",
           }}
         >
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, marginRight: 8 }}>
             <Text style={{ color: "#5A7A63", fontSize: 11, fontWeight: "700", letterSpacing: 0.5 }}>
-              {departure.route_name.toUpperCase()}
+              {departure.route_short_name} · {departure.route_long_name.toUpperCase()}
             </Text>
-            <Text style={{ color: "#1A2E1F", fontSize: 14, marginTop: 2, fontWeight: "500" }} numberOfLines={1}>
+            <Text
+              style={{ color: "#1A2E1F", fontSize: 14, marginTop: 2, fontWeight: "500" }}
+              numberOfLines={1}
+            >
               {departure.headsign}
             </Text>
           </View>
@@ -69,11 +85,16 @@ export function DepartureCard({ departure }: { departure: Departure }) {
               fontFamily: "monospace",
             }}
           >
-            {departure.realtime ?? departure.scheduled}
+            {displayTime}
           </Text>
-          {departure.delay_minutes > 0 && (
+          {delayMinutes > 0 && (
             <Text style={{ color: "#E07B00", fontSize: 13, fontWeight: "600" }}>
-              +{departure.delay_minutes} min
+              +{delayMinutes} min
+            </Text>
+          )}
+          {realtimeStr && scheduledStr !== realtimeStr && (
+            <Text style={{ color: "#9BB0A0", fontSize: 12, textDecorationLine: "line-through" }}>
+              {scheduledStr}
             </Text>
           )}
         </View>

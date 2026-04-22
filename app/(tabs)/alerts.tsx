@@ -141,17 +141,38 @@ export default function AlertsScreen() {
         {isError && (
           <View
             style={{
-              backgroundColor: "#FDECEA",
-              borderWidth: 1,
-              borderColor: "#C41230",
-              borderRadius: 12,
-              padding: 20,
+              backgroundColor: "#FFFFFF",
+              borderRadius: 14,
+              padding: 28,
               alignItems: "center",
+              gap: 10,
+              shadowColor: "#1A2E1F",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.06,
+              shadowRadius: 6,
+              elevation: 1,
             }}
           >
-            <Text style={{ color: "#C41230", fontSize: 14, fontWeight: "600" }}>Could not load alerts</Text>
-            <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 8 }}>
-              <Text style={{ color: "#00853F", fontWeight: "600" }}>Retry</Text>
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: "#FFF4E5",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <TriangleAlert color="#E07B00" size={26} />
+            </View>
+            <Text style={{ color: "#1A2E1F", fontSize: 16, fontWeight: "700", marginTop: 4 }}>
+              Alerts unavailable
+            </Text>
+            <Text style={{ color: "#5A7A63", fontSize: 13, textAlign: "center", lineHeight: 19 }}>
+              Real-time alerts require a Metrolinx API subscription. Check back once your API key is fully provisioned (up to 10 days).
+            </Text>
+            <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 4 }}>
+              <Text style={{ color: "#00853F", fontWeight: "600", fontSize: 14 }}>Retry</Text>
             </TouchableOpacity>
           </View>
         )}

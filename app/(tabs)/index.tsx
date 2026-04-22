@@ -38,7 +38,9 @@ export default function HomeScreen() {
   });
 
   const relevantAlerts = alertsData?.alerts.filter((a) =>
-    a.affected_routes.some((r) => data?.departures.some((d) => d.route_id === r))
+    a.affected_routes.some((r) =>
+      data?.departures.some((d) => d.route_short_name === r || d.route_id === r)
+    )
   );
 
   const updatedTime = dataUpdatedAt
