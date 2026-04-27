@@ -1,0 +1,14 @@
+{
+  "build": {
+    "development": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://localhost:3000/v1"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://go-tracker-proxy-production.up.railway.app/v1"
+      }
+    }
+  }
+}

@@ -23,7 +23,11 @@
       },
       "package": "ca.gotrackerapp",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -33,10 +37,22 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "GO Tracker uses your location to calculate drive time to nearby stations."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fe950534-6b7d-45b7-855f-6daed12b27f9"
+      }
     }
   }
 }

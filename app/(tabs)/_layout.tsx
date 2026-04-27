@@ -60,6 +60,7 @@ export default function TabLayout() {
         }}
       />
       {/* Hidden from tab bar — accessible via More screen */}
+      <Tabs.Screen name="nearest" options={{ href: null }} />
       <Tabs.Screen name="routes"  options={{ href: null }} />
       <Tabs.Screen name="compare" options={{ href: null }} />
       <Tabs.Screen name="fleet"   options={{ href: null }} />

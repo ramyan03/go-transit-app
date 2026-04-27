@@ -14,8 +14,10 @@ import { router, useLocalSearchParams } from "expo-router";
 
 import { api, type Stop } from "@/lib/api";
 import { useAppStore } from "@/store/useAppStore";
+import { useTheme } from "@/hooks/useTheme";
 
 export default function StationSearchScreen() {
+  const t = useTheme();
   const [query, setQuery] = useState("");
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const { setHomeStation, addSavedStation } = useAppStore();
@@ -27,8 +29,6 @@ export default function StationSearchScreen() {
     staleTime: 5 * 60_000,
   });
 
-  // Without a search query, show only GO Train stations (2-letter stop_id like UN, MK, OS).
-  // Searching shows all results including bus stops.
   const isTrainStation = (s: Stop) => /^[A-Z]{2,3}$/.test(s.stop_id);
   const filtered = query
     ? data?.filter((s) => s.stop_name.toLowerCase().includes(query.toLowerCase()))
@@ -46,8 +46,7 @@ export default function StationSearchScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#F4F6F4" }}>
-      {/* Green header */}
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <View style={{ backgroundColor: "#00853F", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Text style={{ color: "#FFFFFF", fontSize: 22, fontWeight: "700" }}>
@@ -55,32 +54,13 @@ export default function StationSearchScreen() {
           </Text>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: "rgba(255,255,255,0.2)",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" }}
           >
             <X color="#FFFFFF" size={18} />
           </TouchableOpacity>
         </View>
 
-        {/* Search input inside header */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: "#FFFFFF",
-            borderRadius: 10,
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-            gap: 8,
-            marginTop: 14,
-          }}
-        >
+        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, gap: 8, marginTop: 14 }}>
           <Search color="#9BB0A0" size={18} />
           <TextInput
             value={query}
@@ -101,7 +81,7 @@ export default function StationSearchScreen() {
 
       {isLoading && (
         <View style={{ paddingVertical: 40, alignItems: "center" }}>
-          <ActivityIndicator color="#00853F" />
+          <ActivityIndicator color={t.primary} />
         </View>
       )}
 
@@ -111,48 +91,26 @@ export default function StationSearchScreen() {
             key={stop.stop_id}
             onPress={() => handleSelect(stop)}
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "#FFFFFF",
-              borderRadius: 12,
-              padding: 14,
-              marginBottom: 8,
-              gap: 12,
-              shadowColor: "#1A2E1F",
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.06,
-              shadowRadius: 4,
-              elevation: 1,
+              flexDirection: "row", alignItems: "center",
+              backgroundColor: t.surface, borderRadius: 12, padding: 14, marginBottom: 8, gap: 12,
+              shadowColor: t.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1,
             }}
           >
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                backgroundColor: "#E8F5EE",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <MapPin color="#00853F" size={18} />
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: t.primaryBg, alignItems: "center", justifyContent: "center" }}>
+              <MapPin color={t.primary} size={18} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: "#1A2E1F", fontWeight: "700", fontSize: 15 }}>
-                {stop.stop_name}
-              </Text>
-              <Text style={{ color: "#9BB0A0", fontSize: 12, marginTop: 1 }}>
-                {stop.stop_id}
-              </Text>
+              <Text style={{ color: t.textPrimary, fontWeight: "700", fontSize: 15 }}>{stop.stop_name}</Text>
+              <Text style={{ color: t.textMuted, fontSize: 12, marginTop: 1 }}>{stop.stop_id}</Text>
             </View>
             {stop.wheelchair_boarding === 1 && (
-              <Text style={{ color: "#9BB0A0", fontSize: 14 }}>♿</Text>
+              <Text style={{ color: t.textMuted, fontSize: 14 }}>♿</Text>
             )}
           </TouchableOpacity>
         ))}
 
         {!isLoading && filtered?.length === 0 && (
-          <Text style={{ color: "#9BB0A0", textAlign: "center", marginTop: 24, fontSize: 14 }}>
+          <Text style={{ color: t.textMuted, textAlign: "center", marginTop: 24, fontSize: 14 }}>
             No stations found for "{query}"
           </Text>
         )}

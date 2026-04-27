@@ -1,8 +1,9 @@
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
+import { useState, useEffect } from "react";
 import { StatusBadge } from "./StatusBadge";
 import { formatTorontoTime, type Departure } from "@/lib/api";
+import { useTheme } from "@/hooks/useTheme";
 
-// Keyed by route_short_name (LW, LE, ST…) — matches GTFS route_short_name field.
 const ROUTE_COLORS: Record<string, string> = {
   LW: "#98002E",
   LE: "#EE3124",
@@ -15,11 +16,17 @@ const ROUTE_COLORS: Record<string, string> = {
   BO: "#8B5A9C",
 };
 
-export function DepartureCard({ departure }: { departure: Departure }) {
-  // Prefer GTFS route color from the known map; fall back to hex from proxy.
+export function DepartureCard({ departure, onPress }: { departure: Departure; onPress?: () => void }) {
+  const t = useTheme();
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const lineColor =
-    ROUTE_COLORS[departure.route_short_name] ??
-    (departure.route_short_name ? `#9BB0A0` : "#9BB0A0");
+    ROUTE_COLORS[departure.route_short_name] ?? "#9BB0A0";
 
   const scheduledStr  = formatTorontoTime(departure.scheduled_departure);
   const realtimeStr   = departure.realtime_departure
@@ -30,15 +37,25 @@ export function DepartureCard({ departure }: { departure: Departure }) {
     ? Math.round(departure.delay_seconds / 60)
     : 0;
 
+  const depMs = new Date(departure.realtime_departure ?? departure.scheduled_departure).getTime();
+  const minutesUntil = Math.round((depMs - nowMs) / 60_000);
+  const countdownLabel =
+    minutesUntil <= 0   ? "NOW"
+    : minutesUntil === 1 ? "1 min"
+    : `${minutesUntil} min`;
+  const countdownColor = minutesUntil <= 2 ? t.danger : t.textMuted;
+
   return (
-    <View
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={onPress ? 0.7 : 1}
       style={{
-        backgroundColor: "#FFFFFF",
+        backgroundColor: t.surface,
         borderRadius: 12,
         marginBottom: 10,
         flexDirection: "row",
         overflow: "hidden",
-        shadowColor: "#1A2E1F",
+        shadowColor: t.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.07,
         shadowRadius: 6,
@@ -47,19 +64,13 @@ export function DepartureCard({ departure }: { departure: Departure }) {
     >
       <View style={{ width: 5, backgroundColor: lineColor }} />
       <View style={{ flex: 1, padding: 14 }}>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-          }}
-        >
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
           <View style={{ flex: 1, marginRight: 8 }}>
-            <Text style={{ color: "#5A7A63", fontSize: 11, fontWeight: "700", letterSpacing: 0.5 }}>
+            <Text style={{ color: t.textSecondary, fontSize: 11, fontWeight: "700", letterSpacing: 0.5 }}>
               {departure.route_short_name} · {departure.route_long_name.toUpperCase()}
             </Text>
             <Text
-              style={{ color: "#1A2E1F", fontSize: 14, marginTop: 2, fontWeight: "500" }}
+              style={{ color: t.textPrimary, fontSize: 14, marginTop: 2, fontWeight: "500" }}
               numberOfLines={1}
             >
               {departure.headsign}
@@ -68,17 +79,10 @@ export function DepartureCard({ departure }: { departure: Departure }) {
           <StatusBadge status={departure.status} />
         </View>
 
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "baseline",
-            marginTop: 10,
-            gap: 8,
-          }}
-        >
+        <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: 10, gap: 8 }}>
           <Text
             style={{
-              color: "#1A2E1F",
+              color: t.textPrimary,
               fontSize: 30,
               fontWeight: "700",
               fontVariant: ["tabular-nums"],
@@ -88,37 +92,35 @@ export function DepartureCard({ departure }: { departure: Departure }) {
             {displayTime}
           </Text>
           {delayMinutes > 0 && (
-            <Text style={{ color: "#E07B00", fontSize: 13, fontWeight: "600" }}>
+            <Text style={{ color: t.warning, fontSize: 13, fontWeight: "600" }}>
               +{delayMinutes} min
             </Text>
           )}
           {realtimeStr && scheduledStr !== realtimeStr && (
-            <Text style={{ color: "#9BB0A0", fontSize: 12, textDecorationLine: "line-through" }}>
+            <Text style={{ color: t.textMuted, fontSize: 12, textDecorationLine: "line-through" }}>
               {scheduledStr}
+            </Text>
+          )}
+          {minutesUntil <= 30 && (
+            <Text style={{ color: countdownColor, fontSize: 12, fontWeight: "600", marginLeft: "auto" }}>
+              {countdownLabel}
             </Text>
           )}
         </View>
 
         <View style={{ flexDirection: "row", marginTop: 6, gap: 12, alignItems: "center" }}>
           {departure.platform && (
-            <View
-              style={{
-                backgroundColor: "#E8F5EE",
-                paddingHorizontal: 8,
-                paddingVertical: 2,
-                borderRadius: 5,
-              }}
-            >
-              <Text style={{ color: "#00853F", fontSize: 11, fontWeight: "700" }}>
+            <View style={{ backgroundColor: t.primaryBg, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5 }}>
+              <Text style={{ color: t.primary, fontSize: 11, fontWeight: "700" }}>
                 Platform {departure.platform}
               </Text>
             </View>
           )}
           {departure.accessible && (
-            <Text style={{ color: "#9BB0A0", fontSize: 13 }}>♿</Text>
+            <Text style={{ color: t.textMuted, fontSize: 13 }}>♿</Text>
           )}
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }

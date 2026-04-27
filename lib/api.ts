@@ -137,6 +137,25 @@ export interface JourneyResponse {
   journeys: Journey[];
 }
 
+export interface GuaranteeResult {
+  trip_id: string;
+  route_id?: string;
+  eligible: boolean;
+  delay_seconds: number | null;
+  cancelled: boolean;
+  reason: string;
+  claim_url: string | null;
+}
+
+export interface TripStopTimesResponse {
+  trip_id: string;
+  route_short_name: string;
+  route_long_name: string;
+  headsign: string;
+  direction_id: number;
+  stop_times: StopTime[];
+}
+
 export interface CompareStation {
   stop_id: string;
   stop_name: string;
@@ -191,18 +210,25 @@ export const api = {
 
   gtfsVersion: () => apiFetch<GtfsVersion>("/gtfs/version"),
 
+  guarantee: (trip_id: string) =>
+    apiFetch<GuaranteeResult>("/guarantee", { trip_id }),
+
   schedule: {
     station: (stop_id: string, date: string, limit = 20) =>
       apiFetch<StationScheduleResponse>("/schedule/station", { stop_id, date, limit: String(limit) }),
 
     journey: (from: string, to: string, date: string, time: string, limit = 10) =>
       apiFetch<JourneyResponse>("/schedule/journey", { from, to, date, time, limit: String(limit) }),
+
+    trip: (trip_id: string) =>
+      apiFetch<TripStopTimesResponse>("/schedule/trip", { trip_id }),
   },
 
-  compare: (stop_ids: string[], limit = 3) =>
+  compare: (stop_ids: string[], drive_seconds?: number[], limit = 3) =>
     apiFetch<CompareResponse>("/compare", {
       stop_ids: stop_ids.join(","),
       limit: String(limit),
+      ...(drive_seconds?.length ? { drive_seconds: drive_seconds.join(",") } : {}),
     }),
 
   routeStops: (short_name: string) =>
