@@ -52,9 +52,19 @@ export interface DeparturesResponse {
   departures: Departure[];
 }
 
+export type AlertEffect =
+  | "significant_delays"
+  | "detour"
+  | "no_service"
+  | "reduced_service"
+  | "modified_service"
+  | "stop_moved"
+  | "other";
+
 export interface Alert {
   id: string;
   severity: "minor" | "major" | "cancelled";
+  effect: AlertEffect;
   affected_routes: string[];
   affected_stops: string[];
   header: string;
@@ -222,6 +232,26 @@ export interface RouteStopsResponse {
   directions: Record<string, RouteDirection>;
 }
 
+export interface StopConnection {
+  to_stop_id: string;
+  to_stop_name: string;
+  transfer_type: number;
+  min_transfer_time: number | null; // seconds
+}
+
+export interface ConnectionsResponse {
+  stop_id: string;
+  stop_name: string;
+  connections: StopConnection[];
+}
+
+export interface LastDepartureResponse {
+  stop_id: string;
+  stop_name: string;
+  date: string;
+  last_departure_iso: string | null;
+}
+
 // ── API client ────────────────────────────────────────────────────────────────
 
 export const api = {
@@ -264,4 +294,10 @@ export const api = {
 
   routeStops: (short_name: string) =>
     apiFetch<RouteStopsResponse>(`/routes/${encodeURIComponent(short_name)}/stops`),
+
+  connections: (stop_id: string) =>
+    apiFetch<ConnectionsResponse>("/connections", { stop_id }),
+
+  lastDeparture: (stop_id: string, date: string) =>
+    apiFetch<LastDepartureResponse>("/schedule/lastdeparture", { stop_id, date }),
 };

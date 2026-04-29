@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { StatusBadge } from "./StatusBadge";
 import { formatTorontoTime, type Departure } from "@/lib/api";
 import { useTheme } from "@/hooks/useTheme";
+import { getTtcForName, type TtcConnection } from "@/lib/ttcConnections";
 
 const ROUTE_COLORS: Record<string, string> = {
   LW: "#98002E",
@@ -16,9 +17,29 @@ const ROUTE_COLORS: Record<string, string> = {
   BO: "#8B5A9C",
 };
 
+function TtcBadge({ connection }: { connection: TtcConnection }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 3, marginTop: 6 }}>
+      <Text style={{ color: "#555", fontSize: 10, fontWeight: "600" }}>TTC</Text>
+      {connection.lines.map((l) => (
+        <View
+          key={l.number}
+          style={{
+            width: 16, height: 16, borderRadius: 8,
+            backgroundColor: l.color, alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <Text style={{ color: "#000", fontSize: 9, fontWeight: "800" }}>{l.label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function DepartureCard({ departure, onPress }: { departure: Departure; onPress?: () => void }) {
   const t = useTheme();
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const ttcConnection = getTtcForName(departure.headsign);
 
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 30_000);
@@ -120,6 +141,7 @@ export function DepartureCard({ departure, onPress }: { departure: Departure; on
             <Text style={{ color: t.textMuted, fontSize: 13 }}>♿</Text>
           )}
         </View>
+        {ttcConnection && <TtcBadge connection={ttcConnection} />}
       </View>
     </TouchableOpacity>
   );

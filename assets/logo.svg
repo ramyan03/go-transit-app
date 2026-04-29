@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="180" fill="#00853F"/>
+
+  <!-- Rail network lines radiating from Union Station (center ~512,600) -->
+  <!-- Lakeshore West -->
+  <line x1="512" y1="600" x2="40"  y2="660" stroke="white" stroke-width="22" stroke-linecap="round" opacity="0.25"/>
+  <!-- Lakeshore East -->
+  <line x1="512" y1="600" x2="984" y2="540" stroke="white" stroke-width="22" stroke-linecap="round" opacity="0.25"/>
+  <!-- Barrie (north) -->
+  <line x1="512" y1="600" x2="450" y2="40"  stroke="white" stroke-width="22" stroke-linecap="round" opacity="0.25"/>
+  <!-- Stouffville (northeast) -->
+  <line x1="512" y1="600" x2="920" y2="120" stroke="white" stroke-width="22" stroke-linecap="round" opacity="0.25"/>
+  <!-- Kitchener (northwest) -->
+  <line x1="512" y1="600" x2="80"  y2="180" stroke="white" stroke-width="22" stroke-linecap="round" opacity="0.25"/>
+  <!-- Milton (southwest) -->
+  <line x1="512" y1="600" x2="60"  y2="880" stroke="white" stroke-width="22" stroke-linecap="round" opacity="0.25"/>
+  <!-- Richmond Hill (north-northeast) -->
+  <line x1="512" y1="600" x2="680" y2="40"  stroke="white" stroke-width="22" stroke-linecap="round" opacity="0.25"/>
+
+  <!-- Intermediate station dots -->
+  <circle cx="275" cy="622" r="14" fill="white" opacity="0.45"/>
+  <circle cx="748" cy="572" r="14" fill="white" opacity="0.45"/>
+  <circle cx="475" cy="310" r="14" fill="white" opacity="0.45"/>
+  <circle cx="760" cy="280" r="14" fill="white" opacity="0.45"/>
+  <circle cx="245" cy="360" r="14" fill="white" opacity="0.45"/>
+  <circle cx="255" cy="760" r="14" fill="white" opacity="0.45"/>
+  <circle cx="598" cy="300" r="14" fill="white" opacity="0.45"/>
+
+  <!-- Union Station (center hub) -->
+  <circle cx="512" cy="600" r="36" fill="white" opacity="0.95"/>
+  <circle cx="512" cy="600" r="18" fill="#00853F" opacity="0.9"/>
+
+  <!-- GO text -->
+  <text
+    x="512" y="480"
+    font-family="Arial Black, Arial, sans-serif"
+    font-size="200"
+    font-weight="900"
+    fill="white"
+    text-anchor="middle"
+    opacity="0.92"
+  >GO</text>
+</svg>

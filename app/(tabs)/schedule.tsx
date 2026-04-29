@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, ArrowRight, Search, X, Bookmark, BookmarkCheck } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { router } from "expo-router";
 
 import { api, type Stop, type ScheduledDeparture, type Journey, type DirectJourney, type TransferJourney } from "@/lib/api";
@@ -403,6 +403,7 @@ export default function ScheduleScreen() {
   const { homeStation, favouriteJourneys, addFavouriteJourney, removeFavouriteJourney } = useAppStore();
   const [mode, setMode] = useState<Mode>("departures");
   const [dateOffset, setDateOffset] = useState(0);
+  const [schedSearch, setSchedSearch] = useState("");
 
   const [fromStop, setFromStop] = useState<Stop | null>(null);
   const [toStop,   setToStop]   = useState<Stop | null>(null);
@@ -436,6 +437,19 @@ export default function ScheduleScreen() {
 
   const dateStr = getDateStr(dateOffset);
 
+  // Filtered departures for My Station search
+  const schedFiltered = useMemo(() => {
+    const deps = stationQuery.data?.departures ?? [];
+    if (!schedSearch.trim()) return deps;
+    const q = schedSearch.toLowerCase();
+    return deps.filter(
+      (dep) =>
+        dep.route_short_name.toLowerCase().includes(q) ||
+        dep.route_long_name.toLowerCase().includes(q) ||
+        dep.headsign.toLowerCase().includes(q)
+    );
+  }, [stationQuery.data, schedSearch]);
+
   const stationQuery = useQuery({
     queryKey: ["schedule-station", homeStation?.stop_id, dateStr],
     queryFn: () => api.schedule.station(homeStation!.stop_id, dateStr, 20),
@@ -463,7 +477,7 @@ export default function ScheduleScreen() {
           {(["departures", "journey"] as Mode[]).map((m) => (
             <TouchableOpacity
               key={m}
-              onPress={() => { setMode(m); setSearched(false); }}
+              onPress={() => { setMode(m); setSearched(false); setSchedSearch(""); }}
               style={{
                 flex: 1, paddingVertical: 8, borderRadius: 8,
                 backgroundColor: mode === m ? "#FFFFFF" : "transparent",
@@ -479,7 +493,7 @@ export default function ScheduleScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <DateTabs selected={dateOffset} onChange={(n) => { setDateOffset(n); setSearched(false); }} />
+        <DateTabs selected={dateOffset} onChange={(n) => { setDateOffset(n); setSearched(false); setSchedSearch(""); }} />
 
         {/* ── Departures mode ── */}
         {mode === "departures" && (
@@ -504,15 +518,41 @@ export default function ScheduleScreen() {
             )}
             {homeStation && stationQuery.data && (
               <>
+                {/* Search bar */}
+                <View style={{
+                  flexDirection: "row", alignItems: "center",
+                  backgroundColor: t.surface, borderRadius: 10,
+                  borderWidth: 1.5, borderColor: t.border,
+                  paddingHorizontal: 12, paddingVertical: 10,
+                  gap: 8, marginBottom: 12,
+                }}>
+                  <Search color={t.textMuted} size={15} />
+                  <TextInput
+                    value={schedSearch}
+                    onChangeText={setSchedSearch}
+                    placeholder="Route or destination…"
+                    placeholderTextColor={t.textMuted}
+                    style={{ flex: 1, color: t.textPrimary, fontSize: 14 }}
+                  />
+                  {schedSearch.length > 0 && (
+                    <TouchableOpacity onPress={() => setSchedSearch("")}>
+                      <X color={t.textMuted} size={14} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+
                 <Text style={{ color: t.textSecondary, fontSize: 12, fontWeight: "600", marginBottom: 10 }}>
-                  {stationQuery.data.stop_name} — {stationQuery.data.departures.length} departures
+                  {stationQuery.data.stop_name} — {schedFiltered.length} departure{schedFiltered.length !== 1 ? "s" : ""}
+                  {schedSearch.trim() ? ` matching "${schedSearch}"` : ""}
                 </Text>
-                {stationQuery.data.departures.map((dep) => (
+                {schedFiltered.map((dep) => (
                   <DepartureRow key={dep.trip_id} dep={dep} />
                 ))}
-                {stationQuery.data.departures.length === 0 && (
+                {schedFiltered.length === 0 && (
                   <View style={{ backgroundColor: t.surface, borderRadius: 12, padding: 20, alignItems: "center" }}>
-                    <Text style={{ color: t.textSecondary, fontSize: 14 }}>No departures found for this date.</Text>
+                    <Text style={{ color: t.textSecondary, fontSize: 14 }}>
+                      {schedSearch.trim() ? "No matching departures." : "No departures found for this date."}
+                    </Text>
                   </View>
                 )}
               </>
