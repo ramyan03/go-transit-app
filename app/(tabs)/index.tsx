@@ -11,11 +11,70 @@ import { useQuery } from "@tanstack/react-query";
 import { MapPin, RefreshCw } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 
-import { api } from "@/lib/api";
+import { api, type Alert } from "@/lib/api";
 import { useAppStore } from "@/store/useAppStore";
 import { DepartureCard } from "@/components/ui/DepartureCard";
 import { useTheme } from "@/hooks/useTheme";
 import { router } from "expo-router";
+
+// ── Line status ribbon ────────────────────────────────────────────────────────
+
+const TRAIN_LINES = ["LW", "LE", "ST", "BR", "RH", "KI", "MI", "GT", "BO"] as const;
+
+const LINE_COLORS: Record<string, string> = {
+  LW: "#98002E", LE: "#EE3124", ST: "#794500", BR: "#69B143",
+  RH: "#0099C7", KI: "#F57F25", MI: "#F57F25", GT: "#F7941D", BO: "#8B5A9C",
+};
+
+type LineStatus = "good" | "minor" | "disrupted";
+
+function deriveLineStatuses(alerts: Alert[]): Record<string, LineStatus> {
+  const statuses: Record<string, LineStatus> = {};
+  for (const line of TRAIN_LINES) statuses[line] = "good";
+
+  for (const alert of alerts) {
+    for (const route of alert.affected_routes) {
+      const line = route.length <= 3 ? route.toUpperCase() : null;
+      if (!line || !(line in statuses)) continue;
+      const current = statuses[line];
+      if (alert.severity === "cancelled" || alert.severity === "major") {
+        statuses[line] = "disrupted";
+      } else if (alert.severity === "minor" && current === "good") {
+        statuses[line] = "minor";
+      }
+    }
+  }
+  return statuses;
+}
+
+function LineStatusRibbon({ alerts }: { alerts: Alert[] | undefined }) {
+  const t = useTheme();
+  if (alerts === undefined) return null;
+
+  const statuses = deriveLineStatuses(alerts);
+  const dotColor = (s: LineStatus) =>
+    s === "disrupted" ? "#C41230" : s === "minor" ? "#E07B00" : "#69B143";
+
+  return (
+    <View style={{
+      backgroundColor: t.surface,
+      borderBottomWidth: 1, borderBottomColor: t.border,
+      paddingHorizontal: 16, paddingVertical: 8,
+      flexDirection: "row", alignItems: "center", gap: 6,
+    }}>
+      {TRAIN_LINES.map((line) => (
+        <View key={line} style={{ flexDirection: "row", alignItems: "center", gap: 3, marginRight: 4 }}>
+          <View style={{ width: 3, height: 14, borderRadius: 1.5, backgroundColor: LINE_COLORS[line] }} />
+          <Text style={{ color: t.textSecondary, fontSize: 11, fontWeight: "700" }}>{line}</Text>
+          <View style={{
+            width: 6, height: 6, borderRadius: 3,
+            backgroundColor: dotColor(statuses[line]),
+          }} />
+        </View>
+      ))}
+    </View>
+  );
+}
 
 export default function HomeScreen() {
   const t = useTheme();
@@ -98,6 +157,8 @@ export default function HomeScreen() {
           </Text>
         )}
       </View>
+
+      <LineStatusRibbon alerts={alertsData?.alerts} />
 
       <ScrollView
         contentContainerStyle={{ padding: 16 }}
