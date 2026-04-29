@@ -9,12 +9,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, ArrowRight, Search, X } from "lucide-react-native";
+import { ChevronDown, ChevronUp, ArrowRight, Search, X, Bookmark, BookmarkCheck } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
 
-import { api, type Stop, type ScheduledDeparture, type Journey } from "@/lib/api";
-import { useAppStore } from "@/store/useAppStore";
+import { api, type Stop, type ScheduledDeparture, type Journey, type DirectJourney, type TransferJourney } from "@/lib/api";
+import { useAppStore, type FavouriteJourney } from "@/store/useAppStore";
 import { useTheme } from "@/hooks/useTheme";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -39,6 +39,61 @@ function getDateLabel(offsetDays: number): string {
 }
 
 const isTrainStation = (s: Stop) => /^[A-Z]{2,3}$/.test(s.stop_id);
+
+const shortName = (name: string) => name.replace(/ GO$/, "").replace(/ Station$/, "");
+
+// ── FavouritesBar ─────────────────────────────────────────────────────────────
+
+function FavouritesBar({
+  favourites, onSelect, onRemove,
+}: {
+  favourites: FavouriteJourney[];
+  onSelect: (fav: FavouriteJourney) => void;
+  onRemove: (id: string) => void;
+}) {
+  const t = useTheme();
+  if (!favourites.length) return null;
+
+  return (
+    <View style={{ marginBottom: 18 }}>
+      <Text style={{ color: t.textSecondary, fontSize: 11, fontWeight: "700", letterSpacing: 0.8, marginBottom: 8 }}>
+        FAVOURITES
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+        {favourites.map((fav) => (
+          <View
+            key={fav.id}
+            style={{
+              flexDirection: "row", alignItems: "center",
+              backgroundColor: t.surface, borderRadius: 10,
+              borderWidth: 1.5, borderColor: t.border,
+              overflow: "hidden",
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => onSelect(fav)}
+              style={{ paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 6 }}
+            >
+              <Text style={{ color: t.textPrimary, fontWeight: "700", fontSize: 13 }}>
+                {shortName(fav.from.stop_name)}
+              </Text>
+              <ArrowRight color={t.textMuted} size={13} />
+              <Text style={{ color: t.textPrimary, fontWeight: "700", fontSize: 13 }}>
+                {shortName(fav.to.stop_name)}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => onRemove(fav.id)}
+              style={{ paddingHorizontal: 10, paddingVertical: 10, borderLeftWidth: 1, borderLeftColor: t.border }}
+            >
+              <X color={t.textMuted} size={14} />
+            </TouchableOpacity>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
 
 // ── StationPicker modal ────────────────────────────────────────────────────────
 
@@ -188,9 +243,9 @@ function DepartureRow({ dep }: { dep: ScheduledDeparture }) {
   );
 }
 
-// ── Journey result card (tappable → departure-detail) ─────────────────────────
+// ── Direct journey card ────────────────────────────────────────────────────────
 
-function JourneyCard({ journey, fromStopId }: { journey: Journey; fromStopId: string }) {
+function DirectJourneyCard({ journey, fromStopId }: { journey: DirectJourney; fromStopId: string }) {
   const t = useTheme();
   const color = ROUTE_COLORS[journey.route_short_name] ?? "#9BB0A0";
 
@@ -245,13 +300,107 @@ function JourneyCard({ journey, fromStopId }: { journey: Journey; fromStopId: st
   );
 }
 
+// ── Transfer journey card ──────────────────────────────────────────────────────
+
+function TransferJourneyCard({ journey, fromStopId }: { journey: TransferJourney; fromStopId: string }) {
+  const t = useTheme();
+  const [leg1, leg2] = journey.legs;
+  const color1 = ROUTE_COLORS[leg1.route_short_name] ?? "#9BB0A0";
+  const color2 = ROUTE_COLORS[leg2.route_short_name] ?? "#9BB0A0";
+
+  function pressLeg(leg: typeof leg1) {
+    router.push({
+      pathname: "/departure-detail" as any,
+      params: {
+        trip_id:             leg.trip_id,
+        stop_id:             leg.from_stop_id,
+        route_short_name:    leg.route_short_name,
+        route_long_name:     leg.route_long_name,
+        headsign:            leg.headsign,
+        scheduled_departure: leg.depart_iso,
+        realtime_departure:  "",
+        delay_seconds:       "",
+        status:              "SCHEDULED",
+        platform:            "",
+        accessible:          "0",
+      },
+    });
+  }
+
+  return (
+    <View style={{
+      backgroundColor: t.surface, borderRadius: 12, marginBottom: 8, overflow: "hidden",
+      shadowColor: t.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1,
+    }}>
+      {/* Leg 1 */}
+      <TouchableOpacity onPress={() => pressLeg(leg1)} activeOpacity={0.75} style={{ flexDirection: "row" }}>
+        <View style={{ width: 5, backgroundColor: color1 }} />
+        <View style={{ flex: 1, padding: 12 }}>
+          <Text style={{ color: t.textSecondary, fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>
+            {leg1.route_short_name} · {leg1.route_long_name.toUpperCase()}
+          </Text>
+          <Text style={{ color: t.textPrimary, fontSize: 12, marginTop: 1 }} numberOfLines={1}>{leg1.headsign}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 6, gap: 6 }}>
+            <Text style={{ color: t.textPrimary, fontSize: 20, fontWeight: "700", fontVariant: ["tabular-nums"] }}>
+              {leg1.depart_time}
+            </Text>
+            <ArrowRight color={t.textMuted} size={13} />
+            <Text style={{ color: t.textSecondary, fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] }}>
+              {leg1.arrive_time}
+            </Text>
+            <Text style={{ color: t.textMuted, fontSize: 11, marginLeft: 2 }}>{leg1.duration_minutes} min</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {/* Transfer indicator */}
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 6, backgroundColor: t.surfaceAlt, gap: 8 }}>
+        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: t.textMuted }} />
+        <Text style={{ color: t.textMuted, fontSize: 11 }}>
+          Change at <Text style={{ fontWeight: "700", color: t.textSecondary }}>{journey.transfer_stop_name}</Text>
+        </Text>
+        <View style={{ flex: 1 }} />
+        <Text style={{ color: t.textMuted, fontSize: 11 }}>{journey.total_duration_minutes} min total</Text>
+      </View>
+
+      {/* Leg 2 */}
+      <TouchableOpacity onPress={() => pressLeg(leg2)} activeOpacity={0.75} style={{ flexDirection: "row" }}>
+        <View style={{ width: 5, backgroundColor: color2 }} />
+        <View style={{ flex: 1, padding: 12 }}>
+          <Text style={{ color: t.textSecondary, fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>
+            {leg2.route_short_name} · {leg2.route_long_name.toUpperCase()}
+          </Text>
+          <Text style={{ color: t.textPrimary, fontSize: 12, marginTop: 1 }} numberOfLines={1}>{leg2.headsign}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 6, gap: 6 }}>
+            <Text style={{ color: t.textPrimary, fontSize: 20, fontWeight: "700", fontVariant: ["tabular-nums"] }}>
+              {leg2.depart_time}
+            </Text>
+            <ArrowRight color={t.textMuted} size={13} />
+            <Text style={{ color: t.textSecondary, fontSize: 14, fontWeight: "600", fontVariant: ["tabular-nums"] }}>
+              {leg2.arrive_time}
+            </Text>
+            <Text style={{ color: t.textMuted, fontSize: 11, marginLeft: 2 }}>{leg2.duration_minutes} min</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function JourneyCard({ journey, fromStopId }: { journey: Journey; fromStopId: string }) {
+  if (journey.type === "transfer") {
+    return <TransferJourneyCard journey={journey} fromStopId={fromStopId} />;
+  }
+  return <DirectJourneyCard journey={journey} fromStopId={fromStopId} />;
+}
+
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 type Mode = "departures" | "journey";
 
 export default function ScheduleScreen() {
   const t = useTheme();
-  const { homeStation } = useAppStore();
+  const { homeStation, favouriteJourneys, addFavouriteJourney, removeFavouriteJourney } = useAppStore();
   const [mode, setMode] = useState<Mode>("departures");
   const [dateOffset, setDateOffset] = useState(0);
 
@@ -261,6 +410,29 @@ export default function ScheduleScreen() {
   const [showFrom, setShowFrom] = useState(false);
   const [showTo,   setShowTo]   = useState(false);
   const [searched, setSearched] = useState(false);
+
+  const currentFavId = fromStop && toStop ? `${fromStop.stop_id}-${toStop.stop_id}` : null;
+  const isSaved = currentFavId ? !!favouriteJourneys.find((j) => j.id === currentFavId) : false;
+
+  function applyFavourite(fav: FavouriteJourney) {
+    const toStop = (s: typeof fav.from): Stop =>
+      ({ stop_id: s.stop_id, stop_name: s.stop_name, stop_code: s.stop_id, stop_lat: 0, stop_lon: 0, wheelchair_boarding: 0 });
+    setFromStop(toStop(fav.from));
+    setToStop(toStop(fav.to));
+    setSearched(true);
+  }
+
+  function toggleSave() {
+    if (!fromStop || !toStop) return;
+    if (isSaved && currentFavId) {
+      removeFavouriteJourney(currentFavId);
+    } else {
+      addFavouriteJourney(
+        { stop_id: fromStop.stop_id, stop_name: fromStop.stop_name },
+        { stop_id: toStop.stop_id,   stop_name: toStop.stop_name },
+      );
+    }
+  }
 
   const dateStr = getDateStr(dateOffset);
 
@@ -351,6 +523,12 @@ export default function ScheduleScreen() {
         {/* ── Journey mode ── */}
         {mode === "journey" && (
           <>
+            <FavouritesBar
+              favourites={favouriteJourneys}
+              onSelect={applyFavourite}
+              onRemove={removeFavouriteJourney}
+            />
+
             <Text style={{ color: t.textSecondary, fontSize: 11, fontWeight: "700", letterSpacing: 0.6, marginBottom: 6 }}>FROM</Text>
             <TouchableOpacity
               onPress={() => setShowFrom(true)}
@@ -397,15 +575,34 @@ export default function ScheduleScreen() {
               />
             </View>
 
-            <TouchableOpacity
-              onPress={() => { if (fromStop && toStop) setSearched(true); }}
-              style={{
-                backgroundColor: fromStop && toStop ? t.primary : t.border,
-                borderRadius: 10, paddingVertical: 14, alignItems: "center", marginBottom: 20,
-              }}
-            >
-              <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 15 }}>Find Trains</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
+              {fromStop && toStop && (
+                <TouchableOpacity
+                  onPress={toggleSave}
+                  style={{
+                    borderRadius: 10, paddingVertical: 14, paddingHorizontal: 16,
+                    alignItems: "center", justifyContent: "center",
+                    backgroundColor: isSaved ? t.primaryBg : t.surface,
+                    borderWidth: 1.5, borderColor: isSaved ? t.primary : t.border,
+                  }}
+                >
+                  {isSaved
+                    ? <BookmarkCheck color={t.primary} size={20} />
+                    : <Bookmark color={t.textMuted} size={20} />
+                  }
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={() => { if (fromStop && toStop) setSearched(true); }}
+                style={{
+                  flex: 1,
+                  backgroundColor: fromStop && toStop ? t.primary : t.border,
+                  borderRadius: 10, paddingVertical: 14, alignItems: "center",
+                }}
+              >
+                <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 15 }}>Find Trains</Text>
+              </TouchableOpacity>
+            </View>
 
             {journeyQuery.isLoading && (
               <View style={{ paddingVertical: 30, alignItems: "center" }}>
@@ -423,7 +620,7 @@ export default function ScheduleScreen() {
                 ))}
                 {journeyQuery.data.journeys.length === 0 && (
                   <View style={{ backgroundColor: t.surface, borderRadius: 12, padding: 20, alignItems: "center" }}>
-                    <Text style={{ color: t.textSecondary, fontSize: 14 }}>No direct trains found.</Text>
+                    <Text style={{ color: t.textSecondary, fontSize: 14 }}>No trains found.</Text>
                   </View>
                 )}
               </>

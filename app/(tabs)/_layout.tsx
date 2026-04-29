@@ -1,21 +1,23 @@
 import { Tabs } from "expo-router";
 import { Platform } from "react-native";
 import { Home, CalendarDays, BellRing, Bookmark, MoreHorizontal } from "lucide-react-native";
+import { useTheme } from "@/hooks/useTheme";
 
 export default function TabLayout() {
+  const t = useTheme();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopColor: "#D8E8DC",
+          backgroundColor: t.surface,
+          borderTopColor: t.border,
           borderTopWidth: 1,
           paddingBottom: Platform.OS === "ios" ? 24 : 8,
           height: Platform.OS === "ios" ? 84 : 64,
         },
-        tabBarActiveTintColor: "#00853F",
-        tabBarInactiveTintColor: "#9BB0A0",
+        tabBarActiveTintColor: t.primary,
+        tabBarInactiveTintColor: t.textMuted,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "600",

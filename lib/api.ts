@@ -116,17 +116,48 @@ export interface StationScheduleResponse {
   departures: ScheduledDeparture[];
 }
 
-export interface Journey {
+export interface DirectJourney {
+  type: "direct";
   trip_id: string;
   route_short_name: string;
   route_long_name: string;
   headsign: string;
-  depart_time: string; // "HH:MM"
+  depart_time: string;
   depart_iso: string;
-  arrive_time: string; // "HH:MM"
+  arrive_time: string;
   arrive_iso: string;
   duration_minutes: number;
 }
+
+export interface JourneyLeg {
+  trip_id: string;
+  route_short_name: string;
+  route_long_name: string;
+  headsign: string;
+  from_stop_id: string;
+  from_stop_name: string;
+  to_stop_id: string;
+  to_stop_name: string;
+  depart_time: string;
+  depart_iso: string;
+  arrive_time: string;
+  arrive_iso: string;
+  duration_minutes: number;
+}
+
+export interface TransferJourney {
+  type: "transfer";
+  depart_time: string;
+  depart_iso: string;
+  arrive_time: string;
+  arrive_iso: string;
+  total_duration_minutes: number;
+  transfer_stop_id: string;
+  transfer_stop_name: string;
+  legs: [JourneyLeg, JourneyLeg];
+}
+
+export type Journey = DirectJourney | TransferJourney;
 
 export interface JourneyResponse {
   from_stop_id: string;

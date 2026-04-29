@@ -155,7 +155,7 @@ function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
                 </View>
               )}
               <Image
-                source={{ uri: vehicle.photo }}
+                source={{ uri: vehicle.photo, headers: { "User-Agent": "Mozilla/5.0 (compatible; GOTracker/1.0)" } }}
                 style={{ width: "100%", height: 220 }}
                 resizeMode="cover"
                 onLoad={() => setImgLoading(false)}
