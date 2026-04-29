@@ -616,7 +616,11 @@ export default function ScheduleScreen() {
                   {journeyQuery.data.from_stop_name} → {journeyQuery.data.to_stop_name} · tap a train for stop details
                 </Text>
                 {journeyQuery.data.journeys.map((j) => (
-                  <JourneyCard key={j.trip_id} journey={j} fromStopId={fromStop!.stop_id} />
+                  <JourneyCard
+                    key={j.type === "direct" ? j.trip_id : `${j.legs[0].trip_id}+${j.legs[1].trip_id}`}
+                    journey={j}
+                    fromStopId={fromStop!.stop_id}
+                  />
                 ))}
                 {journeyQuery.data.journeys.length === 0 && (
                   <View style={{ backgroundColor: t.surface, borderRadius: 12, padding: 20, alignItems: "center" }}>
