@@ -15,6 +15,7 @@ import { router } from "expo-router";
 
 import { api, type Stop, type ScheduledDeparture, type Journey, type DirectJourney, type TransferJourney } from "@/lib/api";
 import { useAppStore, type FavouriteJourney } from "@/store/useAppStore";
+import { POPULAR_DESTINATIONS } from "@/lib/popularDestinations";
 import { useTheme } from "@/hooks/useTheme";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -423,6 +424,15 @@ export default function ScheduleScreen() {
     setSearched(true);
   }
 
+  function applyDestination(dest: typeof POPULAR_DESTINATIONS[number]) {
+    const destStop: Stop = { stop_id: dest.goStopId, stop_name: dest.goStopName, stop_code: dest.goStopId, stop_lat: 0, stop_lon: 0, wheelchair_boarding: 0 };
+    setToStop(destStop);
+    if (!fromStop && homeStation) {
+      setFromStop({ stop_id: homeStation.stop_id, stop_name: homeStation.stop_name, stop_code: homeStation.stop_id, stop_lat: 0, stop_lon: 0, wheelchair_boarding: 0 });
+    }
+    setSearched(false);
+  }
+
   function toggleSave() {
     if (!fromStop || !toStop) return;
     if (isSaved && currentFavId) {
@@ -567,6 +577,38 @@ export default function ScheduleScreen() {
               onSelect={applyFavourite}
               onRemove={removeFavouriteJourney}
             />
+
+            {/* Popular destinations */}
+            <Text style={{ color: t.textSecondary, fontSize: 11, fontWeight: "700", letterSpacing: 0.8, marginBottom: 8 }}>
+              POPULAR DESTINATIONS
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
+              style={{ marginBottom: 18 }}
+            >
+              {POPULAR_DESTINATIONS.map((dest) => (
+                <TouchableOpacity
+                  key={dest.id}
+                  onPress={() => applyDestination(dest)}
+                  style={{
+                    backgroundColor: toStop?.stop_id === dest.goStopId ? t.primaryBg : t.surface,
+                    borderRadius: 10,
+                    borderWidth: 1.5,
+                    borderColor: toStop?.stop_id === dest.goStopId ? t.primary : t.border,
+                    paddingHorizontal: 12, paddingVertical: 8,
+                    flexDirection: "row", alignItems: "center", gap: 6,
+                  }}
+                >
+                  <Text style={{ fontSize: 15 }}>{dest.emoji}</Text>
+                  <View>
+                    <Text style={{ color: t.textPrimary, fontWeight: "700", fontSize: 12 }}>{dest.name}</Text>
+                    <Text style={{ color: t.textMuted, fontSize: 10, marginTop: 1 }}>{dest.goStopName}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
             <Text style={{ color: t.textSecondary, fontSize: 11, fontWeight: "700", letterSpacing: 0.6, marginBottom: 6 }}>FROM</Text>
             <TouchableOpacity
