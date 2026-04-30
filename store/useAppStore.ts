@@ -18,6 +18,8 @@ interface AppState {
   favouriteJourneys: FavouriteJourney[];
   theme: "light" | "dark" | "system";
   gtfsVersion: string | null;
+  // Session-only: set by global search to pre-fill Journey Planner FROM field
+  pendingFromStop: SavedStation | null;
 
   setHomeStation: (station: SavedStation | null) => void;
   addSavedStation: (station: SavedStation) => void;
@@ -26,6 +28,7 @@ interface AppState {
   removeFavouriteJourney: (id: string) => void;
   setTheme: (theme: "light" | "dark" | "system") => void;
   setGtfsVersion: (version: string) => void;
+  setPendingFromStop: (stop: SavedStation | null) => void;
   hydrate: () => Promise<void>;
 }
 
@@ -35,6 +38,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   favouriteJourneys: [],
   theme: "system",
   gtfsVersion: null,
+  pendingFromStop: null,
 
   setHomeStation: async (station) => {
     set({ homeStation: station });
@@ -84,6 +88,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ gtfsVersion: version });
     await AsyncStorage.setItem("gtfs_version", version);
   },
+
+  setPendingFromStop: (stop) => set({ pendingFromStop: stop }),
 
   hydrate: async () => {
     const [homeRaw, savedRaw, favsRaw, theme, gtfsVersion] = await Promise.all([

@@ -14,6 +14,7 @@ import { api, type Departure } from "@/lib/api";
 import { useAppStore, SavedStation } from "@/store/useAppStore";
 import { formatTorontoTime } from "@/lib/api";
 import { useTheme } from "@/hooks/useTheme";
+import { useLayout } from "@/hooks/useLayout";
 
 const ROUTE_COLORS: Record<string, string> = {
   LW: "#98002E", LE: "#EE3124", ST: "#794500", BR: "#69B143",
@@ -151,6 +152,7 @@ function StationCard({ station }: { station: SavedStation }) {
 }
 
 export default function SavedScreen() {
+  const { hPad } = useLayout();
   const t = useTheme();
   const { savedStations } = useAppStore();
 
@@ -183,7 +185,7 @@ export default function SavedScreen() {
         )}
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: hPad, paddingVertical: 16 }}>
         {savedStations.length === 0 && (
           <View style={{
             backgroundColor: t.surface, borderRadius: 14, padding: 32,

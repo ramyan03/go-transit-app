@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, RefreshCw, X, Train } from "lucide-react-native";
+import { MapPin, RefreshCw, X, Train, Search } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 
 import { api, type Alert } from "@/lib/api";
@@ -18,6 +18,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { router } from "expo-router";
 import { getTtcForStopId } from "@/lib/ttcConnections";
 import { getNoticesForStop } from "@/lib/notices";
+import { useLayout } from "@/hooks/useLayout";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -183,6 +184,7 @@ function ConnectionsSection({ stopId }: { stopId: string }) {
 
 export default function HomeScreen() {
   const t = useTheme();
+  const { hPad } = useLayout();
   const { homeStation, hydrate } = useAppStore();
   const [dirFilter, setDirFilter] = useState<number | null>(null);
   const [lastTrainDismissed, setLastTrainDismissed] = useState(false);
@@ -284,11 +286,16 @@ export default function HomeScreen() {
               {homeStation?.stop_name ?? "Set home station"}
             </Text>
           </TouchableOpacity>
-          {updatedTime && (
-            <TouchableOpacity onPress={() => refetch()} style={{ padding: 4 }}>
-              <RefreshCw color={isFetching ? "#A8D5B8" : "#FFFFFF"} size={18} />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <TouchableOpacity onPress={() => router.push("/search")} style={{ padding: 4 }}>
+              <Search color="#FFFFFF" size={18} />
             </TouchableOpacity>
-          )}
+            {updatedTime && (
+              <TouchableOpacity onPress={() => refetch()} style={{ padding: 4 }}>
+                <RefreshCw color={isFetching ? "#A8D5B8" : "#FFFFFF"} size={18} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
         {/* TTC connection badge in header */}
         {homeTtc && (
@@ -317,7 +324,7 @@ export default function HomeScreen() {
       <LineStatusRibbon alerts={alertsData?.alerts} />
 
       <ScrollView
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ paddingHorizontal: hPad, paddingVertical: 16 }}
         refreshControl={
           <RefreshControl
             refreshing={isFetching && !isLoading}

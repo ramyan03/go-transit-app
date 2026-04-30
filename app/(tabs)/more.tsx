@@ -5,6 +5,7 @@ import { router } from "expo-router";
 
 import { useTheme } from "@/hooks/useTheme";
 import { useAppStore } from "@/store/useAppStore";
+import { useLayout } from "@/hooks/useLayout";
 
 interface MoreItem {
   icon: (color: string) => React.ReactNode;
@@ -38,6 +39,12 @@ const ITEMS: MoreItem[] = [
     description: "GO Transit locomotive and coach specs",
     route: "/(tabs)/fleet",
   },
+  {
+    icon: (c) => <ChevronRight color={c} size={22} />,
+    title: "Privacy Policy",
+    description: "How GO Tracker handles your data",
+    route: "/privacy",
+  },
 ];
 
 type ThemePref = "light" | "dark" | "system";
@@ -50,6 +57,7 @@ const THEME_OPTIONS: { key: ThemePref; label: string; icon: (c: string) => React
 
 export default function MoreScreen() {
   const t = useTheme();
+  const { hPad } = useLayout();
   const { theme, setTheme } = useAppStore();
 
   return (
@@ -61,7 +69,7 @@ export default function MoreScreen() {
         <Text style={{ color: "#FFFFFF", fontSize: 22, fontWeight: "700", marginTop: 4 }}>More</Text>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: hPad, paddingVertical: 16 }}>
         {/* Navigation items */}
         <View style={{
           backgroundColor: t.surface, borderRadius: 14, overflow: "hidden",

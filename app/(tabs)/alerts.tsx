@@ -13,6 +13,7 @@ import { useState } from "react";
 
 import { api, type Alert, type AlertEffect } from "@/lib/api";
 import { useTheme } from "@/hooks/useTheme";
+import { useLayout } from "@/hooks/useLayout";
 
 type TabId = "alerts" | "delays";
 
@@ -118,6 +119,7 @@ function EmptyState({ tab }: { tab: TabId }) {
 
 export default function AlertsScreen() {
   const t = useTheme();
+  const { hPad } = useLayout();
   const [activeTab, setActiveTab] = useState<TabId>("alerts");
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
@@ -167,7 +169,7 @@ export default function AlertsScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ paddingHorizontal: hPad, paddingVertical: 16 }}
         refreshControl={
           <RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} tintColor="#00853F" />
         }

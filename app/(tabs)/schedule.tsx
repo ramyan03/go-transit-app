@@ -10,12 +10,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, ArrowRight, Search, X, Bookmark, BookmarkCheck } from "lucide-react-native";
-import { useEffect, useMemo, useState } from "react";
-import { router } from "expo-router";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { router, useFocusEffect } from "expo-router";
 
 import { api, type Stop, type ScheduledDeparture, type Journey, type DirectJourney, type TransferJourney } from "@/lib/api";
 import { useAppStore, type FavouriteJourney } from "@/store/useAppStore";
 import { POPULAR_DESTINATIONS } from "@/lib/popularDestinations";
+import { useLayout } from "@/hooks/useLayout";
 import { useTheme } from "@/hooks/useTheme";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -401,7 +402,8 @@ type Mode = "departures" | "journey";
 
 export default function ScheduleScreen() {
   const t = useTheme();
-  const { homeStation, favouriteJourneys, addFavouriteJourney, removeFavouriteJourney } = useAppStore();
+  const { hPad } = useLayout();
+  const { homeStation, favouriteJourneys, addFavouriteJourney, removeFavouriteJourney, pendingFromStop, setPendingFromStop } = useAppStore();
   const [mode, setMode] = useState<Mode>("departures");
   const [dateOffset, setDateOffset] = useState(0);
   const [schedSearch, setSchedSearch] = useState("");
@@ -412,6 +414,19 @@ export default function ScheduleScreen() {
   const [showFrom, setShowFrom] = useState(false);
   const [showTo,   setShowTo]   = useState(false);
   const [searched, setSearched] = useState(false);
+
+  // Consume pendingFromStop set by global search
+  useFocusEffect(
+    useCallback(() => {
+      const pending = useAppStore.getState().pendingFromStop;
+      if (pending) {
+        setFromStop({ stop_id: pending.stop_id, stop_name: pending.stop_name, stop_code: pending.stop_id, stop_lat: 0, stop_lon: 0, wheelchair_boarding: 0 });
+        setMode("journey");
+        setSearched(false);
+        useAppStore.getState().setPendingFromStop(null);
+      }
+    }, [])
+  );
 
   const currentFavId = fromStop && toStop ? `${fromStop.stop_id}-${toStop.stop_id}` : null;
   const isSaved = currentFavId ? !!favouriteJourneys.find((j) => j.id === currentFavId) : false;
@@ -477,10 +492,17 @@ export default function ScheduleScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <View style={{ backgroundColor: "#00853F", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 }}>
-        <Text style={{ color: "#FFFFFF", fontSize: 22, fontWeight: "700" }}>Schedule</Text>
-        <Text style={{ color: "#A8D5B8", fontSize: 12, marginTop: 2 }}>
-          {mode === "departures" ? "From your home station" : "Find a train between stations"}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <View>
+            <Text style={{ color: "#FFFFFF", fontSize: 22, fontWeight: "700" }}>Schedule</Text>
+            <Text style={{ color: "#A8D5B8", fontSize: 12, marginTop: 2 }}>
+              {mode === "departures" ? "From your home station" : "Find a train between stations"}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={() => router.push("/search")} style={{ padding: 4 }}>
+            <Search color="#FFFFFF" size={22} />
+          </TouchableOpacity>
+        </View>
 
         <View style={{ flexDirection: "row", backgroundColor: "rgba(0,0,0,0.2)", borderRadius: 10, padding: 3, marginTop: 14 }}>
           {(["departures", "journey"] as Mode[]).map((m) => (
@@ -501,7 +523,7 @@ export default function ScheduleScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: hPad, paddingVertical: 16 }}>
         <DateTabs selected={dateOffset} onChange={(n) => { setDateOffset(n); setSearched(false); setSchedSearch(""); }} />
 
         {/* ── Departures mode ── */}
