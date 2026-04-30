@@ -36,11 +36,11 @@ function buildLeafletHTML(stops: RouteStop[], color: string, label: string): str
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body, #map { width: 100%; height: 100%; }
+    html, body, #map { width: 100%; height: 100%; background: #0f172a; }
     .stop-label {
-      background: white; border: 2px solid ${lineColor}; border-radius: 6px;
-      padding: 2px 6px; font-size: 11px; font-weight: 700; color: #1A2E1F;
-      white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      background: #1e293b; border: 2px solid ${lineColor}; border-radius: 6px;
+      padding: 2px 6px; font-size: 11px; font-weight: 700; color: #e2e8f0;
+      white-space: nowrap; box-shadow: 0 1px 6px rgba(0,0,0,0.5);
     }
   </style>
 </head>
@@ -49,7 +49,7 @@ function buildLeafletHTML(stops: RouteStop[], color: string, label: string): str
 <script>
   const stops = ${stopsJson};
   const map = L.map('map', { zoomControl: true }).setView([${centerLat}, ${centerLon}], 10);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 18 }).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap contributors © CARTO', maxZoom: 19 }).addTo(map);
   const latlngs = stops.map(s => [s.lat, s.lon]);
   L.polyline(latlngs, { color: '${lineColor}', weight: 4, opacity: 0.85 }).addTo(map);
   stops.forEach((stop, i) => {

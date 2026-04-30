@@ -437,7 +437,13 @@ export default function ScheduleScreen() {
 
   const dateStr = getDateStr(dateOffset);
 
-  // Filtered departures for My Station search
+  const stationQuery = useQuery({
+    queryKey: ["schedule-station", homeStation?.stop_id, dateStr],
+    queryFn: () => api.schedule.station(homeStation!.stop_id, dateStr, 20),
+    enabled: mode === "departures" && !!homeStation,
+    staleTime: 5 * 60_000,
+  });
+
   const schedFiltered = useMemo(() => {
     const deps = stationQuery.data?.departures ?? [];
     if (!schedSearch.trim()) return deps;
@@ -449,13 +455,6 @@ export default function ScheduleScreen() {
         dep.headsign.toLowerCase().includes(q)
     );
   }, [stationQuery.data, schedSearch]);
-
-  const stationQuery = useQuery({
-    queryKey: ["schedule-station", homeStation?.stop_id, dateStr],
-    queryFn: () => api.schedule.station(homeStation!.stop_id, dateStr, 20),
-    enabled: mode === "departures" && !!homeStation,
-    staleTime: 5 * 60_000,
-  });
 
   const journeyQuery = useQuery({
     queryKey: ["schedule-journey", fromStop?.stop_id, toStop?.stop_id, dateStr, time],

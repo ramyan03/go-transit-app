@@ -5,20 +5,18 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, RefreshCw, X, Train } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 
-import { api, type Alert, type Journey, type DirectJourney, type TransferJourney } from "@/lib/api";
+import { api, type Alert } from "@/lib/api";
 import { useAppStore } from "@/store/useAppStore";
 import { DepartureCard } from "@/components/ui/DepartureCard";
 import { useTheme } from "@/hooks/useTheme";
 import { router } from "expo-router";
 import { getTtcForStopId } from "@/lib/ttcConnections";
-import { POPULAR_DESTINATIONS, type PopularDestination } from "@/lib/popularDestinations";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -26,15 +24,6 @@ function getTodayStr(): string {
   return new Date()
     .toLocaleDateString("en-CA", { timeZone: "America/Toronto" })
     .replace(/-/g, "");
-}
-
-function getNowTimeStr(): string {
-  return new Date().toLocaleTimeString("en-CA", {
-    timeZone: "America/Toronto",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
 }
 
 // ── Line status ribbon ────────────────────────────────────────────────────────
@@ -138,205 +127,6 @@ function LastTrainBanner({
         <X color={t.warning} size={16} />
       </TouchableOpacity>
     </View>
-  );
-}
-
-// ── Popular Destinations ──────────────────────────────────────────────────────
-
-const ROUTE_COLORS: Record<string, string> = {
-  LW: "#98002E", LE: "#EE3124", ST: "#794500", BR: "#69B143",
-  RH: "#0099C7", KI: "#F57F25", MI: "#F57F25", GT: "#F7941D", BO: "#8B5A9C",
-};
-
-function JourneyResultCard({ journey }: { journey: Journey }) {
-  const t = useTheme();
-  if (journey.type === "direct") {
-    const j = journey as DirectJourney;
-    const color = ROUTE_COLORS[j.route_short_name] ?? "#9BB0A0";
-    return (
-      <View style={{
-        backgroundColor: t.surface, borderRadius: 10, marginBottom: 8, overflow: "hidden",
-        borderLeftWidth: 4, borderLeftColor: color,
-        shadowColor: t.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1,
-      }}>
-        <View style={{ padding: 12 }}>
-          <Text style={{ color: t.textSecondary, fontSize: 11, fontWeight: "700" }}>
-            {j.route_short_name} · {j.route_long_name.toUpperCase()}
-          </Text>
-          <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: 6, gap: 8 }}>
-            <Text style={{ color: t.textPrimary, fontSize: 22, fontWeight: "700", fontVariant: ["tabular-nums"] }}>
-              {j.depart_time}
-            </Text>
-            <Text style={{ color: t.textMuted, fontSize: 13 }}>→ {j.arrive_time}</Text>
-            <Text style={{ color: t.textMuted, fontSize: 12, marginLeft: "auto" }}>{j.duration_minutes} min</Text>
-          </View>
-        </View>
-      </View>
-    );
-  }
-  const j = journey as TransferJourney;
-  const color1 = ROUTE_COLORS[j.legs[0].route_short_name] ?? "#9BB0A0";
-  return (
-    <View style={{
-      backgroundColor: t.surface, borderRadius: 10, marginBottom: 8, overflow: "hidden",
-      borderLeftWidth: 4, borderLeftColor: color1,
-      shadowColor: t.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1,
-    }}>
-      <View style={{ padding: 12 }}>
-        <Text style={{ color: t.textSecondary, fontSize: 11, fontWeight: "700" }}>
-          {j.legs[0].route_short_name} → {j.legs[1].route_short_name} (transfer)
-        </Text>
-        <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: 6, gap: 8 }}>
-          <Text style={{ color: t.textPrimary, fontSize: 22, fontWeight: "700", fontVariant: ["tabular-nums"] }}>
-            {j.depart_time}
-          </Text>
-          <Text style={{ color: t.textMuted, fontSize: 13 }}>→ {j.arrive_time}</Text>
-          <Text style={{ color: t.textMuted, fontSize: 12, marginLeft: "auto" }}>{j.total_duration_minutes} min</Text>
-        </View>
-        <Text style={{ color: t.textMuted, fontSize: 11, marginTop: 2 }}>
-          Change at {j.transfer_stop_name}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function DestinationModal({
-  dest,
-  homeStopId,
-  visible,
-  onClose,
-}: {
-  dest: PopularDestination | null;
-  homeStopId: string;
-  visible: boolean;
-  onClose: () => void;
-}) {
-  const t = useTheme();
-  const today = getTodayStr();
-  const nowTime = getNowTimeStr();
-
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["dest-journey", homeStopId, dest?.goStopId, today, nowTime],
-    queryFn: () => api.schedule.journey(homeStopId, dest!.goStopId, today, nowTime, 5),
-    enabled: visible && !!dest && homeStopId !== dest?.goStopId,
-    staleTime: 2 * 60_000,
-  });
-
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
-        <View style={{ backgroundColor: "#00853F", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: "#FFFFFF", fontSize: 20, fontWeight: "700" }}>
-                {dest?.emoji} {dest?.name}
-              </Text>
-              <Text style={{ color: "#A8D5B8", fontSize: 12, marginTop: 2 }}>
-                Nearest GO: {dest?.goStopName}
-                {dest?.note ? `  ·  ${dest.note}` : ""}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={onClose}>
-              <X color="#FFFFFF" size={22} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <ScrollView contentContainerStyle={{ padding: 16 }}>
-          {isLoading && (
-            <View style={{ paddingVertical: 40, alignItems: "center" }}>
-              <ActivityIndicator color={t.primary} />
-            </View>
-          )}
-          {isError && (
-            <View style={{ backgroundColor: t.surface, borderRadius: 12, padding: 20, alignItems: "center" }}>
-              <Text style={{ color: t.textSecondary, fontSize: 14 }}>Could not load trains.</Text>
-            </View>
-          )}
-          {data && data.journeys.length === 0 && (
-            <View style={{ backgroundColor: t.surface, borderRadius: 12, padding: 20, alignItems: "center" }}>
-              <Text style={{ color: t.textSecondary, fontSize: 14 }}>No trains found today.</Text>
-            </View>
-          )}
-          {data && data.journeys.length > 0 && (
-            <>
-              <Text style={{ color: t.textSecondary, fontSize: 12, fontWeight: "600", marginBottom: 10 }}>
-                Next trains from {data.from_stop_name} → {data.to_stop_name}
-              </Text>
-              {data.journeys.map((j) => (
-                <JourneyResultCard
-                  key={j.type === "direct" ? j.trip_id : `${j.legs[0].trip_id}+${j.legs[1].trip_id}`}
-                  journey={j}
-                />
-              ))}
-            </>
-          )}
-          {homeStopId === dest?.goStopId && (
-            <View style={{ backgroundColor: t.surface, borderRadius: 12, padding: 20, alignItems: "center" }}>
-              <Text style={{ color: t.textSecondary, fontSize: 14 }}>
-                {dest?.goStopName} is your home station.
-              </Text>
-            </View>
-          )}
-        </ScrollView>
-      </SafeAreaView>
-    </Modal>
-  );
-}
-
-function PopularDestinationsRow({
-  homeStopId,
-}: {
-  homeStopId: string;
-}) {
-  const t = useTheme();
-  const [selected, setSelected] = useState<PopularDestination | null>(null);
-
-  return (
-    <>
-      <Text style={{ color: t.textSecondary, fontSize: 11, fontWeight: "700", letterSpacing: 0.8, marginBottom: 8 }}>
-        POPULAR DESTINATIONS
-      </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
-        style={{ marginBottom: 16 }}
-      >
-        {POPULAR_DESTINATIONS.map((dest) => (
-          <TouchableOpacity
-            key={dest.id}
-            onPress={() => setSelected(dest)}
-            style={{
-              backgroundColor: t.surface,
-              borderRadius: 10, borderWidth: 1.5, borderColor: t.border,
-              paddingHorizontal: 14, paddingVertical: 10,
-              flexDirection: "row", alignItems: "center", gap: 6,
-              shadowColor: t.shadow, shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
-            }}
-          >
-            <Text style={{ fontSize: 16 }}>{dest.emoji}</Text>
-            <View>
-              <Text style={{ color: t.textPrimary, fontWeight: "700", fontSize: 12 }}>
-                {dest.name}
-              </Text>
-              <Text style={{ color: t.textMuted, fontSize: 10, marginTop: 1 }}>
-                {dest.goStopName}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <DestinationModal
-        dest={selected}
-        homeStopId={homeStopId}
-        visible={!!selected}
-        onClose={() => setSelected(null)}
-      />
-    </>
   );
 }
 
@@ -660,11 +450,6 @@ export default function HomeScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        )}
-
-        {/* Popular destinations */}
-        {homeStation && (
-          <PopularDestinationsRow homeStopId={homeStation.stop_id} />
         )}
 
         {/* Departures */}
