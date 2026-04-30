@@ -17,6 +17,7 @@ import { DepartureCard } from "@/components/ui/DepartureCard";
 import { useTheme } from "@/hooks/useTheme";
 import { router } from "expo-router";
 import { getTtcForStopId } from "@/lib/ttcConnections";
+import { getNoticesForStop } from "@/lib/notices";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -246,6 +247,19 @@ export default function HomeScreen() {
     return (data?.departures ?? []).filter((d) => d.direction_id === dirFilter);
   }, [data, dirFilter, hasMultipleDirections]);
 
+  const LIMITED_WEEKEND_LINES = new Set(["KI", "MI", "BR"]);
+  const isWeekend = [0, 6].includes(new Date().getDay());
+  const showReducedService = useMemo(() => {
+    if (!isWeekend || !data?.departures.length) return false;
+    const routes = new Set(data.departures.map((d) => d.route_short_name));
+    return [...routes].every((r) => LIMITED_WEEKEND_LINES.has(r));
+  }, [data, isWeekend]);
+
+  const homeNotices = useMemo(
+    () => (homeStation ? getNoticesForStop(homeStation.stop_id) : []),
+    [homeStation]
+  );
+
   const updatedTime = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : null;
@@ -410,6 +424,40 @@ export default function HomeScreen() {
             <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 10 }}>
               <Text style={{ color: t.primary, fontSize: 14, fontWeight: "600" }}>Try again</Text>
             </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Station notices */}
+        {homeNotices.map((n, i) => (
+          <View
+            key={i}
+            style={{
+              backgroundColor: n.type === "warning" ? t.warningBg : t.surfaceAlt,
+              borderWidth: 1.5,
+              borderColor: n.type === "warning" ? t.warning : t.border,
+              borderRadius: 10, padding: 12, marginBottom: 12,
+              flexDirection: "row", alignItems: "center", gap: 10,
+            }}
+          >
+            <Text style={{ fontSize: 16 }}>{n.type === "warning" ? "⚠️" : "ℹ️"}</Text>
+            <Text style={{ flex: 1, color: n.type === "warning" ? t.warning : t.textSecondary, fontSize: 13 }}>
+              {n.message}
+            </Text>
+          </View>
+        ))}
+
+        {/* Reduced weekend service */}
+        {showReducedService && (
+          <View style={{
+            backgroundColor: t.surfaceAlt,
+            borderWidth: 1.5, borderColor: t.border,
+            borderRadius: 10, padding: 12, marginBottom: 12,
+            flexDirection: "row", alignItems: "center", gap: 10,
+          }}>
+            <Text style={{ fontSize: 16 }}>📅</Text>
+            <Text style={{ flex: 1, color: t.textSecondary, fontSize: 13 }}>
+              Weekend service on this line is significantly reduced.
+            </Text>
           </View>
         )}
 

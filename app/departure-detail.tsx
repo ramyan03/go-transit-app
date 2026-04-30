@@ -14,6 +14,8 @@ import { ChevronLeft, ExternalLink, AlertTriangle, CheckCircle, Clock } from "lu
 import { api, formatTorontoTime, type GuaranteeResult } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useTheme } from "@/hooks/useTheme";
+import { getTtcForStopId } from "@/lib/ttcConnections";
+import { getNoticesForStop } from "@/lib/notices";
 
 const ROUTE_COLORS: Record<string, string> = {
   LW: "#98002E", LE: "#EE3124", ST: "#794500", BR: "#69B143",
@@ -146,41 +148,63 @@ export default function DepartureDetailScreen() {
               {stopTimesQuery.data.stop_times.map((st, i) => {
                 const isOrigin = st.stop_id === stop_id || st.stop_id === stop_id.toUpperCase();
                 const isLast = i === stopTimesQuery.data!.stop_times.length - 1;
+                const ttc = getTtcForStopId(st.stop_id);
+                const notices = getNoticesForStop(st.stop_id);
                 return (
                   <View
                     key={st.stop_id + st.stop_sequence}
                     style={{
-                      flexDirection: "row", alignItems: "center",
-                      paddingHorizontal: 14, paddingVertical: 11,
+                      paddingHorizontal: 14, paddingVertical: 10,
                       backgroundColor: isOrigin ? t.primaryBg : t.surface,
                       borderBottomWidth: isLast ? 0 : 1,
                       borderBottomColor: t.bg,
                     }}
                   >
-                    <View style={{ width: 24, alignItems: "center", marginRight: 12 }}>
-                      {!isLast && (
-                        <View style={{ position: "absolute", top: 14, width: 2, height: 34, backgroundColor: lineColor + "40" }} />
-                      )}
-                      <View style={{
-                        width: isOrigin ? 12 : 8, height: isOrigin ? 12 : 8,
-                        borderRadius: isOrigin ? 6 : 4,
-                        backgroundColor: isOrigin ? lineColor : lineColor + "60",
-                        borderWidth: isOrigin ? 2 : 0,
-                        borderColor: t.surface,
-                      }} />
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <View style={{ width: 24, alignItems: "center", marginRight: 12 }}>
+                        {!isLast && (
+                          <View style={{ position: "absolute", top: 14, width: 2, height: 34, backgroundColor: lineColor + "40" }} />
+                        )}
+                        <View style={{
+                          width: isOrigin ? 12 : 8, height: isOrigin ? 12 : 8,
+                          borderRadius: isOrigin ? 6 : 4,
+                          backgroundColor: isOrigin ? lineColor : lineColor + "60",
+                          borderWidth: isOrigin ? 2 : 0,
+                          borderColor: t.surface,
+                        }} />
+                      </View>
+                      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <Text style={{
+                          color: isOrigin ? t.textPrimary : t.textSecondary,
+                          fontSize: isOrigin ? 14 : 13, fontWeight: isOrigin ? "700" : "400",
+                        }}>
+                          {st.stop_name}{isOrigin ? " ← you" : ""}
+                        </Text>
+                        {ttc && ttc.lines.map((l) => (
+                          <View
+                            key={l.number}
+                            style={{
+                              width: 16, height: 16, borderRadius: 8,
+                              backgroundColor: l.color, alignItems: "center", justifyContent: "center",
+                            }}
+                          >
+                            <Text style={{ color: "#000", fontSize: 9, fontWeight: "800" }}>{l.label}</Text>
+                          </View>
+                        ))}
+                      </View>
+                      <Text style={{
+                        color: isOrigin ? t.textPrimary : t.textSecondary,
+                        fontSize: 13, fontWeight: isOrigin ? "700" : "400", fontVariant: ["tabular-nums"],
+                      }}>
+                        {st.departure_time}
+                      </Text>
                     </View>
-                    <Text style={{
-                      flex: 1, color: isOrigin ? t.textPrimary : t.textSecondary,
-                      fontSize: isOrigin ? 14 : 13, fontWeight: isOrigin ? "700" : "400",
-                    }}>
-                      {st.stop_name}{isOrigin ? " ← you" : ""}
-                    </Text>
-                    <Text style={{
-                      color: isOrigin ? t.textPrimary : t.textSecondary,
-                      fontSize: 13, fontWeight: isOrigin ? "700" : "400", fontVariant: ["tabular-nums"],
-                    }}>
-                      {st.departure_time}
-                    </Text>
+                    {notices.map((n, ni) => (
+                      <View key={ni} style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, marginLeft: 36 }}>
+                        <Text style={{ fontSize: 11 }}>{n.type === "warning" ? "⚠️" : "ℹ️"}</Text>
+                        <Text style={{ color: t.textMuted, fontSize: 11, flex: 1 }}>{n.message}</Text>
+                      </View>
+                    ))}
                   </View>
                 );
               })}
