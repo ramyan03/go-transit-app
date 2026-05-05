@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import * as Location from "expo-location";
 import { router } from "expo-router";
 
-import { api, type Stop, formatTorontoTime } from "@/lib/api";
+import { api, type Stop, type ConnectingRoute, formatTorontoTime } from "@/lib/api";
 import { useAppStore } from "@/store/useAppStore";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -72,6 +72,24 @@ export default function NearestStationScreen() {
       queryFn: () => api.departures(s.stop_id, 1),
       staleTime: 30_000,
       refetchInterval: 30_000,
+    })),
+  });
+
+  const nearestStopIds = nearest.map((s) => s.stop_id);
+  const { data: fareData } = useQuery({
+    queryKey: ["nearest-fares", ...nearestStopIds],
+    queryFn: () => api.fareBulk("UN", nearestStopIds),
+    enabled: nearestStopIds.length > 0,
+    staleTime: 24 * 60 * 60_000,
+    retry: false,
+  });
+
+  const connQueries = useQueries({
+    queries: nearest.map((s) => ({
+      queryKey: ["connecting-routes", s.stop_id],
+      queryFn: () => api.connectingRoutes(s.stop_id),
+      staleTime: 6 * 60 * 60_000,
+      retry: false,
     })),
   });
 
@@ -146,6 +164,8 @@ export default function NearestStationScreen() {
           const routeColor = dep ? (ROUTE_COLORS[dep.route_short_name] ?? t.textMuted) : t.border;
           const isHome = homeStation?.stop_id === station.stop_id;
           const isSaved = savedStations.some((s) => s.stop_id === station.stop_id);
+          const fare = fareData?.fares[station.stop_id];
+          const connRoutes: ConnectingRoute[] = connQueries[idx]?.data?.connecting_routes ?? [];
 
           return (
             <View key={station.stop_id} style={{
@@ -168,6 +188,20 @@ export default function NearestStationScreen() {
                     )}
                   </View>
                   <Text style={{ color: t.textMuted, fontSize: 11, marginTop: 1 }}>{station.stop_id}</Text>
+                  {fare != null && (
+                    <Text style={{ color: t.primary, fontSize: 11, fontWeight: "700", marginTop: 2 }}>
+                      ${fare.toFixed(2)} e-ticket to Union · Presto ~$1–$1.50 less
+                    </Text>
+                  )}
+                  {connRoutes.length > 0 && (
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                      {connRoutes.slice(0, 8).map((r) => (
+                        <View key={r.route_short_name} style={{ backgroundColor: t.surfaceAlt, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
+                          <Text style={{ color: t.textMuted, fontSize: 10, fontWeight: "700" }}>{r.route_short_name}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
               </View>
 

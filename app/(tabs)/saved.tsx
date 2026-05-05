@@ -6,11 +6,11 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { Bookmark, MapPin, Plus, Trash2, Home } from "lucide-react-native";
 import { router } from "expo-router";
 
-import { api, type Departure } from "@/lib/api";
+import { api, type Departure, type ConnectingRoute } from "@/lib/api";
 import { useAppStore, SavedStation } from "@/store/useAppStore";
 import { formatTorontoTime } from "@/lib/api";
 import { useTheme } from "@/hooks/useTheme";
@@ -87,7 +87,7 @@ function NextDeparture({ stop_id }: { stop_id: string }) {
   );
 }
 
-function StationCard({ station }: { station: SavedStation }) {
+function StationCard({ station, fare, connRoutes }: { station: SavedStation; fare?: number | null; connRoutes?: ConnectingRoute[] }) {
   const t = useTheme();
   const { homeStation, setHomeStation, removeSavedStation } = useAppStore();
   const isHome = homeStation?.stop_id === station.stop_id;
@@ -122,6 +122,20 @@ function StationCard({ station }: { station: SavedStation }) {
             )}
           </View>
           <NextDeparture stop_id={station.stop_id} />
+          {fare != null && (
+            <Text style={{ color: t.primary, fontSize: 11, fontWeight: "700", marginTop: 4 }}>
+              ${fare.toFixed(2)} e-ticket · Presto ~$1–$1.50 less
+            </Text>
+          )}
+          {connRoutes && connRoutes.length > 0 && (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+              {connRoutes.slice(0, 8).map((r) => (
+                <View key={r.route_short_name} style={{ backgroundColor: "#F4F6F4", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
+                  <Text style={{ color: t.textMuted, fontSize: 10, fontWeight: "700" }}>{r.route_short_name}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={{ flexDirection: "row", gap: 8, marginLeft: 12 }}>
@@ -154,7 +168,25 @@ function StationCard({ station }: { station: SavedStation }) {
 export default function SavedScreen() {
   const { hPad } = useLayout();
   const t = useTheme();
-  const { savedStations } = useAppStore();
+  const { savedStations, homeStation } = useAppStore();
+
+  const savedStopIds = savedStations.map((s) => s.stop_id);
+  const { data: fareData } = useQuery({
+    queryKey: ["saved-fares", homeStation?.stop_id, ...savedStopIds],
+    queryFn: () => api.fareBulk(homeStation!.stop_id, savedStopIds),
+    enabled: !!homeStation && savedStopIds.length > 0,
+    staleTime: 24 * 60 * 60_000,
+    retry: false,
+  });
+
+  const connQueries = useQueries({
+    queries: savedStations.map((s) => ({
+      queryKey: ["connecting-routes", s.stop_id],
+      queryFn: () => api.connectingRoutes(s.stop_id),
+      staleTime: 6 * 60 * 60_000,
+      retry: false,
+    })),
+  });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
@@ -215,8 +247,13 @@ export default function SavedScreen() {
           </View>
         )}
 
-        {savedStations.map((station) => (
-          <StationCard key={station.stop_id} station={station} />
+        {savedStations.map((station, idx) => (
+          <StationCard
+            key={station.stop_id}
+            station={station}
+            fare={fareData?.fares[station.stop_id]}
+            connRoutes={connQueries[idx]?.data?.connecting_routes}
+          />
         ))}
 
         {savedStations.length === 5 && (

@@ -13,7 +13,7 @@ import { ChevronDown, ChevronUp, ArrowRight, Search, X, Bookmark, BookmarkCheck 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
 
-import { api, type Stop, type ScheduledDeparture, type Journey, type DirectJourney, type TransferJourney } from "@/lib/api";
+import { api, type Stop, type ScheduledDeparture, type Journey, type DirectJourney, type TransferJourney, type FareResponse } from "@/lib/api";
 import { useAppStore, type FavouriteJourney } from "@/store/useAppStore";
 import { POPULAR_DESTINATIONS } from "@/lib/popularDestinations";
 import { useLayout } from "@/hooks/useLayout";
@@ -488,6 +488,14 @@ export default function ScheduleScreen() {
     staleTime: 5 * 60_000,
   });
 
+  const fareQuery = useQuery({
+    queryKey: ["journey-fare", fromStop?.stop_id, toStop?.stop_id],
+    queryFn: () => api.fare(fromStop!.stop_id, toStop!.stop_id),
+    enabled: mode === "journey" && !!fromStop && !!toStop && searched,
+    staleTime: 24 * 60 * 60_000,
+    retry: false,
+  });
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
@@ -715,9 +723,19 @@ export default function ScheduleScreen() {
 
             {journeyQuery.data && (
               <>
-                <Text style={{ color: t.textSecondary, fontSize: 12, fontWeight: "600", marginBottom: 10 }}>
-                  {journeyQuery.data.from_stop_name} → {journeyQuery.data.to_stop_name} · tap a train for stop details
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <Text style={{ color: t.textSecondary, fontSize: 12, fontWeight: "600", flex: 1 }}>
+                    {journeyQuery.data.from_stop_name} → {journeyQuery.data.to_stop_name} · tap for stops
+                  </Text>
+                  {fareQuery.data?.fare != null && (
+                    <View style={{ backgroundColor: "#00853F" + "18", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, alignItems: "flex-end" }}>
+                      <Text style={{ color: "#00853F", fontSize: 13, fontWeight: "700" }}>
+                        ${fareQuery.data.fare.toFixed(2)} e-ticket
+                      </Text>
+                      <Text style={{ color: "#5A7A63", fontSize: 10 }}>Presto ~$1–$1.50 less</Text>
+                    </View>
+                  )}
+                </View>
                 {journeyQuery.data.journeys.map((j) => (
                   <JourneyCard
                     key={j.type === "direct" ? j.trip_id : `${j.legs[0].trip_id}+${j.legs[1].trip_id}`}

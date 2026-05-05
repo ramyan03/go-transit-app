@@ -14,7 +14,7 @@ import { ChevronDown, MapPin, Search, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import * as Location from "expo-location";
 
-import { api, type Stop, type Departure } from "@/lib/api";
+import { api, type Stop, type Departure, type FareBulkResponse } from "@/lib/api";
 import { formatTorontoTime } from "@/lib/api";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -155,6 +155,15 @@ export default function CompareScreen() {
     enabled: ready,
     refetchInterval: 30_000,
     staleTime: 20_000,
+  });
+
+  // GO fares are symmetric — fare from station → UN equals UN → station
+  const { data: fareData } = useQuery({
+    queryKey: ["compare-fares", stationA?.stop_id, stationB?.stop_id],
+    queryFn: () => api.fareBulk("UN", [stationA!.stop_id, stationB!.stop_id]),
+    enabled: ready,
+    staleTime: 24 * 60 * 60_000,
+    retry: false,
   });
 
   async function handleAutoTime(
@@ -308,11 +317,19 @@ export default function CompareScreen() {
 
         {data && (
           <View style={{ flexDirection: "row", gap: 10 }}>
-            {data.stations.map((st) => (
+            {data.stations.map((st) => {
+              const fare = fareData?.fares[st.stop_id];
+              return (
               <View key={st.stop_id} style={{ flex: 1 }}>
                 <Text style={{ color: t.textPrimary, fontWeight: "700", fontSize: 14, marginBottom: 2 }} numberOfLines={1}>
                   {st.stop_name}
                 </Text>
+                {fare != null && (
+                  <View style={{ marginBottom: 8 }}>
+                    <Text style={{ color: t.primary, fontSize: 13, fontWeight: "700" }}>${fare.toFixed(2)} e-ticket</Text>
+                    <Text style={{ color: t.textMuted, fontSize: 10 }}>Presto ~$1–$1.50 less</Text>
+                  </View>
+                )}
                 {st.departures.length === 0 ? (
                   <View style={{ backgroundColor: t.surface, borderRadius: 8, padding: 12, alignItems: "center" }}>
                     <Text style={{ color: t.textMuted, fontSize: 12 }}>No departures</Text>
@@ -323,7 +340,8 @@ export default function CompareScreen() {
                   ))
                 )}
               </View>
-            ))}
+              );
+            })}
           </View>
         )}
 

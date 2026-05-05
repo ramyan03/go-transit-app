@@ -30,9 +30,9 @@ export default function StationSearchScreen() {
   });
 
   const isTrainStation = (s: Stop) => /^[A-Z]{2,3}$/.test(s.stop_id);
-  const filtered = query
+  const filtered = (query
     ? data?.filter((s) => s.stop_name.toLowerCase().includes(query.toLowerCase()))
-    : data?.filter(isTrainStation);
+    : data?.filter(isTrainStation))?.sort((a, b) => a.stop_name.localeCompare(b.stop_name));
 
   function handleSelect(stop: Stop) {
     const station = { stop_id: stop.stop_id, stop_name: stop.stop_name };

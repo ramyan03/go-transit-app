@@ -10,7 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Search, X, MapPin, Train, ArrowRight } from "lucide-react-native";
+import { Search, X, MapPin, Train, Bus, ArrowRight } from "lucide-react-native";
 
 import { api, type Stop, type Route } from "@/lib/api";
 import { useAppStore } from "@/store/useAppStore";
@@ -39,8 +39,8 @@ export default function SearchScreen() {
 
   // Route list — loaded once, filtered client-side
   const routesQuery = useQuery({
-    queryKey: ["routes-train"],
-    queryFn: () => api.routes("train"),
+    queryKey: ["routes-all"],
+    queryFn: () => api.routes(),
     staleTime: 6 * 60 * 60_000,
   });
 
@@ -53,8 +53,9 @@ export default function SearchScreen() {
   });
 
   const filteredRoutes = useMemo(() => {
-    if (!routesQuery.data || !debouncedQuery.trim()) return routesQuery.data ?? [];
-    const q = debouncedQuery.toLowerCase();
+    if (!routesQuery.data) return [];
+    const q = debouncedQuery.trim().toLowerCase();
+    if (!q) return routesQuery.data.filter((r) => r.route_type === 2); // default: trains only
     return routesQuery.data.filter(
       (r) =>
         r.route_short_name.toLowerCase().includes(q) ||
@@ -209,7 +210,8 @@ export default function SearchScreen() {
               shadowColor: t.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1,
             }}>
               {filteredRoutes.map((route, i) => {
-                const color = ROUTE_COLORS[route.route_short_name] ?? `#${route.route_color}`;
+                const color = ROUTE_COLORS[route.route_short_name] ?? (route.route_color ? `#${route.route_color}` : "#5A7A63");
+                const isTrain = route.route_type === 2;
                 return (
                   <TouchableOpacity
                     key={route.route_id}
@@ -223,7 +225,7 @@ export default function SearchScreen() {
                       width: 36, height: 36, borderRadius: 9, backgroundColor: color,
                       alignItems: "center", justifyContent: "center",
                     }}>
-                      <Train color="#FFFFFF" size={18} />
+                      {isTrain ? <Train color="#FFFFFF" size={18} /> : <Bus color="#FFFFFF" size={18} />}
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: t.textPrimary, fontSize: 15, fontWeight: "600" }}>{route.route_short_name}</Text>

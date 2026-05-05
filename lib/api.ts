@@ -245,11 +245,39 @@ export interface ConnectionsResponse {
   connections: StopConnection[];
 }
 
+export interface ConnectingRoute {
+  route_short_name: string;
+  route_long_name: string;
+  route_type: number;
+  route_color: string;
+}
+
+export interface ConnectingRoutesResponse {
+  stop_id: string;
+  stop_name: string;
+  connecting_routes: ConnectingRoute[];
+}
+
 export interface LastDepartureResponse {
   stop_id: string;
   stop_name: string;
   date: string;
   last_departure_iso: string | null;
+}
+
+export interface FareResponse {
+  from_stop_id: string;
+  to_stop_id: string;
+  fare: number | null;
+  currency: string;
+  payment: string; // "eticket" — from GTFS fare_attributes (payment_method=1)
+}
+
+export interface FareBulkResponse {
+  from_stop_id: string;
+  fares: Record<string, number | null>;
+  currency: string;
+  payment: string;
 }
 
 // ── API client ────────────────────────────────────────────────────────────────
@@ -298,6 +326,15 @@ export const api = {
   connections: (stop_id: string) =>
     apiFetch<ConnectionsResponse>("/connections", { stop_id }),
 
+  connectingRoutes: (stop_id: string) =>
+    apiFetch<ConnectingRoutesResponse>("/connections/routes", { stop_id }),
+
   lastDeparture: (stop_id: string, date: string) =>
     apiFetch<LastDepartureResponse>("/schedule/lastdeparture", { stop_id, date }),
+
+  fare: (from: string, to: string) =>
+    apiFetch<FareResponse>("/fares", { from, to }),
+
+  fareBulk: (from: string, stop_ids: string[]) =>
+    apiFetch<FareBulkResponse>("/fares/bulk", { from, stop_ids: stop_ids.join(",") }),
 };

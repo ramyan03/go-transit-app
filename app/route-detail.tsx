@@ -14,6 +14,8 @@ import WebView from "react-native-webview";
 
 import { api, RouteStop } from "@/lib/api";
 import { useTheme } from "@/hooks/useTheme";
+import { useAppStore } from "@/store/useAppStore";
+import { getStationMeta, ratingColor, priceRating, type Rating } from "@/lib/stationMeta";
 
 function buildLeafletHTML(stops: RouteStop[], color: string, label: string): string {
   const validStops = stops.filter((s) => s.stop_lat !== 0 && s.stop_lon !== 0);
@@ -77,6 +79,7 @@ export default function RouteDetailScreen() {
   const { short_name, long_name, color, route_type } = useLocalSearchParams<{
     short_name: string; long_name: string; color: string; route_type: string;
   }>();
+  const homeStation = useAppStore((s) => s.homeStation);
 
   const [activeDir, setActiveDir] = useState<"0" | "1">("0");
 
@@ -84,6 +87,17 @@ export default function RouteDetailScreen() {
     queryKey: ["route-stops", short_name],
     queryFn: () => api.routeStops(short_name),
     staleTime: 60 * 60_000,
+  });
+
+  const allStopIds = data
+    ? [...new Set(Object.values(data.directions).flatMap((d) => d.stops.map((s) => s.stop_id)))]
+    : [];
+
+  const { data: faresData } = useQuery({
+    queryKey: ["route-fares", short_name, homeStation?.stop_id],
+    queryFn: () => api.fareBulk(homeStation!.stop_id, allStopIds),
+    enabled: !!homeStation && allStopIds.length > 0,
+    staleTime: 24 * 60 * 60_000,
   });
 
   const lineColor = color ? `#${color}` : "#00853F";
@@ -159,45 +173,102 @@ export default function RouteDetailScreen() {
             <Text style={{ color: t.textSecondary, fontSize: 11, fontWeight: "600", letterSpacing: 0.6, marginBottom: 8 }}>
               {direction.stops.length} STOPS
             </Text>
+
+            {faresData && (
+              <View style={{ flexDirection: "row", gap: 6, marginBottom: 10, alignItems: "center" }}>
+                <StopDot color="#69B143" />
+                <Text style={{ color: t.textMuted, fontSize: 11 }}>Best</Text>
+                <StopDot color="#E07B00" />
+                <Text style={{ color: t.textMuted, fontSize: 11 }}>Mid</Text>
+                <StopDot color="#C41230" />
+                <Text style={{ color: t.textMuted, fontSize: 11 }}>Worst</Text>
+                <Text style={{ color: t.textMuted, fontSize: 10, marginLeft: 6 }}>
+                  $ = e-ticket fare (Presto ~$1–$1.50 less) · P = parking · S = seats
+                </Text>
+              </View>
+            )}
+
             <View style={{
               backgroundColor: t.surface, borderRadius: 14, overflow: "hidden",
               shadowColor: t.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2,
             }}>
-              {direction.stops.map((stop, index) => {
-                const isTerminus = index === 0 || index === direction.stops.length - 1;
-                const time = stop.departure_time.substring(0, 5);
-                return (
-                  <View
-                    key={stop.stop_id + stop.stop_sequence}
-                    style={{
-                      flexDirection: "row", alignItems: "center",
-                      paddingHorizontal: 16, paddingVertical: 11,
-                      borderBottomWidth: index < direction.stops.length - 1 ? 1 : 0,
-                      borderBottomColor: t.bg,
-                      gap: 12,
-                    }}
-                  >
-                    <View style={{ width: 20, alignItems: "center" }}>
-                      <View style={{
-                        width: isTerminus ? 14 : 10, height: isTerminus ? 14 : 10,
-                        borderRadius: isTerminus ? 7 : 5,
-                        backgroundColor: isTerminus ? lineColor : t.surface,
-                        borderWidth: 2, borderColor: lineColor,
-                      }} />
+              {(() => {
+                const fareValues = direction.stops
+                  .map((s) => faresData?.fares[s.stop_id] ?? null)
+                  .filter((f): f is number => f !== null);
+                const minFare = fareValues.length ? Math.min(...fareValues) : 0;
+                const maxFare = fareValues.length ? Math.max(...fareValues) : 0;
+
+                return direction.stops.map((stop, index) => {
+                  const isTerminus = index === 0 || index === direction.stops.length - 1;
+                  const time = stop.departure_time.substring(0, 5);
+                  const meta = getStationMeta(stop.stop_id);
+                  const fare = faresData?.fares[stop.stop_id] ?? null;
+                  const pRating = fare !== null ? priceRating(fare, minFare, maxFare) : null;
+
+                  return (
+                    <View
+                      key={stop.stop_id + stop.stop_sequence}
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingTop: 11,
+                        paddingBottom: pRating !== null ? 8 : 11,
+                        borderBottomWidth: index < direction.stops.length - 1 ? 1 : 0,
+                        borderBottomColor: t.bg,
+                        gap: 4,
+                      }}
+                    >
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                        <View style={{ width: 20, alignItems: "center" }}>
+                          <View style={{
+                            width: isTerminus ? 14 : 10, height: isTerminus ? 14 : 10,
+                            borderRadius: isTerminus ? 7 : 5,
+                            backgroundColor: isTerminus ? lineColor : t.surface,
+                            borderWidth: 2, borderColor: lineColor,
+                          }} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: t.textPrimary, fontSize: isTerminus ? 14 : 13, fontWeight: isTerminus ? "700" : "500" }}>
+                            {stop.stop_name}
+                          </Text>
+                        </View>
+                        <Text style={{ color: t.textMuted, fontSize: 12, fontVariant: ["tabular-nums"] }}>{time}</Text>
+                      </View>
+
+                      {(pRating !== null || faresData) && (
+                        <View style={{ flexDirection: "row", gap: 8, marginLeft: 32, alignItems: "center" }}>
+                          <RatingDot label="$" rating={pRating ?? "medium"} dimmed={pRating === null} fare={fare} />
+                          <RatingDot label="P" rating={meta.parking === "none" ? "low" : meta.parking} />
+                          <RatingDot label="S" rating={meta.seats} />
+                        </View>
+                      )}
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: t.textPrimary, fontSize: isTerminus ? 14 : 13, fontWeight: isTerminus ? "700" : "500" }}>
-                        {stop.stop_name}
-                      </Text>
-                    </View>
-                    <Text style={{ color: t.textMuted, fontSize: 12, fontVariant: ["tabular-nums"] }}>{time}</Text>
-                  </View>
-                );
-              })}
+                  );
+                });
+              })()}
             </View>
           </View>
         </ScrollView>
       )}
     </SafeAreaView>
+  );
+}
+
+function StopDot({ color }: { color: string }) {
+  return <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />;
+}
+
+function RatingDot({ label, rating, dimmed, fare }: { label: string; rating: Rating; dimmed?: boolean; fare?: number | null }) {
+  return (
+    <View style={{ alignItems: "center", gap: 1 }}>
+      <View style={{
+        width: 14, height: 14, borderRadius: 7,
+        backgroundColor: ratingColor(rating),
+        opacity: dimmed ? 0.3 : 1,
+      }} />
+      <Text style={{ fontSize: 9, color: "#9BB0A0", fontWeight: "600" }}>
+        {label === "$" && fare !== null && fare !== undefined ? `$${fare.toFixed(0)}` : label}
+      </Text>
+    </View>
   );
 }
