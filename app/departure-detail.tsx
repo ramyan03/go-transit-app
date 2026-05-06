@@ -9,9 +9,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ExternalLink, AlertTriangle, CheckCircle, Clock } from "lucide-react-native";
+import { ChevronLeft, ExternalLink, AlertTriangle, CheckCircle, Clock, Train } from "lucide-react-native";
 
-import { api, formatTorontoTime, type GuaranteeResult } from "@/lib/api";
+import { api, formatTorontoTime, type GuaranteeResult, type VehiclePosition } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useTheme } from "@/hooks/useTheme";
 import { getTtcForStopId } from "@/lib/ttcConnections";
@@ -54,6 +54,15 @@ export default function DepartureDetailScreen() {
     staleTime: 30_000,
     retry: false,
   });
+
+  const vehiclesQuery = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: () => api.vehiclePositions(),
+    staleTime: 30_000,
+    retry: false,
+  });
+
+  const vehicle = vehiclesQuery.data?.vehicles.find((v) => v.trip_id === trip_id) ?? null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
@@ -121,6 +130,8 @@ export default function DepartureDetailScreen() {
         </View>
 
         <GuaranteePanel isLoading={guaranteeQuery.isLoading} isError={guaranteeQuery.isError} data={guaranteeQuery.data} />
+
+        <VehiclePanel vehicle={vehicle} />
 
         {/* Stop times */}
         <View style={{ marginTop: 4 }}>
@@ -218,6 +229,44 @@ export default function DepartureDetailScreen() {
         </Text>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+// ── Vehicle Panel ────────────────────────────────────────────────────────────
+
+function VehiclePanel({ vehicle }: { vehicle: VehiclePosition | null }) {
+  const t = useTheme();
+  if (!vehicle) return null;
+
+  const label = vehicle.vehicle_label ?? vehicle.vehicle_id;
+  const speedKmh = vehicle.speed_ms != null ? Math.round(vehicle.speed_ms * 3.6) : null;
+  const statusText =
+    vehicle.current_status === "stopped_at" ? "Stopped"
+    : vehicle.current_status === "incoming_at" ? "Arriving"
+    : "En route";
+
+  return (
+    <View style={{
+      backgroundColor: t.surface, borderRadius: 12, padding: 14, marginBottom: 14,
+      flexDirection: "row", alignItems: "center", gap: 12,
+      shadowColor: t.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 1,
+    }}>
+      <Train color={t.textMuted} size={18} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: t.textSecondary, fontSize: 11, fontWeight: "700", letterSpacing: 0.6 }}>
+          VEHICLE
+        </Text>
+        <Text style={{ color: t.textPrimary, fontSize: 14, fontWeight: "700", marginTop: 1 }}>
+          {label}
+        </Text>
+      </View>
+      <View style={{ alignItems: "flex-end" }}>
+        <Text style={{ color: t.textSecondary, fontSize: 12, fontWeight: "600" }}>{statusText}</Text>
+        {speedKmh != null && speedKmh > 0 && (
+          <Text style={{ color: t.textMuted, fontSize: 11, marginTop: 2 }}>{speedKmh} km/h</Text>
+        )}
+      </View>
+    </View>
   );
 }
 

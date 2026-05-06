@@ -43,8 +43,26 @@
         {
           "locationWhenInUsePermission": "GO Tracker uses your location to calculate drive time to nearby stations."
         }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "GoTrackerWidget",
+              "label": "GO Tracker — Next Train",
+              "description": "Shows your next GO Transit departure at a glance",
+              "minWidth": "320dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
       ]
     ],
+    "privacyPolicyUrl": "https://ramyan03.github.io/go-transit-app/privacy.html",
     "experiments": {
       "typedRoutes": true
     },

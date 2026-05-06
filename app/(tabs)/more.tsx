@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { GitCompare, MapPin, Route, Train, ChevronRight, Sun, Moon, Smartphone } from "lucide-react-native";
+import { GitCompare, Map, MapPin, Route, Train, ChevronRight, Sun, Moon, Smartphone, Clock, Minus, Plus, Radio } from "lucide-react-native";
 import { router } from "expo-router";
 
 import { useTheme } from "@/hooks/useTheme";
@@ -15,6 +15,18 @@ interface MoreItem {
 }
 
 const ITEMS: MoreItem[] = [
+  {
+    icon: (c) => <Radio color={c} size={22} />,
+    title: "Live Map",
+    description: "All active GO trains in real time",
+    route: "/(tabs)/vehicles",
+  },
+  {
+    icon: (c) => <Map color={c} size={22} />,
+    title: "Network Map",
+    description: "All GO Transit rail lines on one map",
+    route: "/(tabs)/network-map",
+  },
   {
     icon: (c) => <MapPin color={c} size={22} />,
     title: "Nearest Stations",
@@ -58,7 +70,7 @@ const THEME_OPTIONS: { key: ThemePref; label: string; icon: (c: string) => React
 export default function MoreScreen() {
   const t = useTheme();
   const { hPad } = useLayout();
-  const { theme, setTheme } = useAppStore();
+  const { theme, setTheme, commuteBufferMinutes, setCommuteBufferMinutes } = useAppStore();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
@@ -101,6 +113,65 @@ export default function MoreScreen() {
               <ChevronRight color={t.textMuted} size={18} />
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* Commute buffer */}
+        <Text style={{ color: t.textMuted, fontSize: 11, fontWeight: "700", letterSpacing: 0.8, marginTop: 28, marginBottom: 10 }}>
+          COMMUTE
+        </Text>
+        <View style={{
+          backgroundColor: t.surface, borderRadius: 14,
+          shadowColor: t.shadow, shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.07, shadowRadius: 8, elevation: 2,
+          paddingHorizontal: 16, paddingVertical: 14,
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={{
+              width: 42, height: 42, borderRadius: 11,
+              backgroundColor: t.primaryBg, alignItems: "center", justifyContent: "center",
+            }}>
+              <Clock color={t.primary} size={22} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: t.textPrimary, fontSize: 15, fontWeight: "700" }}>Walk time to station</Text>
+              <Text style={{ color: t.textSecondary, fontSize: 12, marginTop: 1 }}>
+                Shows "Leave at" on each departure card
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 20, marginTop: 16 }}>
+            <TouchableOpacity
+              onPress={() => setCommuteBufferMinutes(Math.max(0, commuteBufferMinutes - 5))}
+              disabled={commuteBufferMinutes === 0}
+              style={{
+                width: 40, height: 40, borderRadius: 20,
+                backgroundColor: commuteBufferMinutes === 0 ? t.surfaceAlt : t.primaryBg,
+                alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <Minus color={commuteBufferMinutes === 0 ? t.textMuted : t.primary} size={20} />
+            </TouchableOpacity>
+
+            <View style={{ alignItems: "center", minWidth: 80 }}>
+              <Text style={{ color: t.textPrimary, fontSize: 28, fontWeight: "800", fontVariant: ["tabular-nums"] }}>
+                {commuteBufferMinutes}
+              </Text>
+              <Text style={{ color: t.textSecondary, fontSize: 12 }}>min</Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setCommuteBufferMinutes(Math.min(60, commuteBufferMinutes + 5))}
+              disabled={commuteBufferMinutes === 60}
+              style={{
+                width: 40, height: 40, borderRadius: 20,
+                backgroundColor: commuteBufferMinutes === 60 ? t.surfaceAlt : t.primaryBg,
+                alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <Plus color={commuteBufferMinutes === 60 ? t.textMuted : t.primary} size={20} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Theme toggle */}

@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import { useState, useEffect } from "react";
+import { Clock } from "lucide-react-native";
 import { StatusBadge } from "./StatusBadge";
 import { formatTorontoTime, type Departure } from "@/lib/api";
 import { useTheme } from "@/hooks/useTheme";
@@ -36,7 +37,15 @@ function TtcBadge({ connection }: { connection: TtcConnection }) {
   );
 }
 
-export function DepartureCard({ departure, onPress }: { departure: Departure; onPress?: () => void }) {
+export function DepartureCard({
+  departure,
+  onPress,
+  bufferMinutes = 0,
+}: {
+  departure: Departure;
+  onPress?: () => void;
+  bufferMinutes?: number;
+}) {
   const t = useTheme();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const ttcConnection = getTtcForName(departure.headsign);
@@ -65,6 +74,11 @@ export function DepartureCard({ departure, onPress }: { departure: Departure; on
     : minutesUntil === 1 ? "1 min"
     : `${minutesUntil} min`;
   const countdownColor = minutesUntil <= 2 ? t.danger : t.textMuted;
+
+  const leaveAtStr =
+    bufferMinutes > 0 && minutesUntil > 0
+      ? formatTorontoTime(new Date(depMs - bufferMinutes * 60_000).toISOString())
+      : null;
 
   return (
     <TouchableOpacity
@@ -128,6 +142,15 @@ export function DepartureCard({ departure, onPress }: { departure: Departure; on
             </Text>
           )}
         </View>
+
+        {leaveAtStr && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+            <Clock color={t.primary} size={11} />
+            <Text style={{ color: t.primary, fontSize: 12, fontWeight: "600" }}>
+              Leave at {leaveAtStr}
+            </Text>
+          </View>
+        )}
 
         <View style={{ flexDirection: "row", marginTop: 6, gap: 12, alignItems: "center" }}>
           {departure.platform && (

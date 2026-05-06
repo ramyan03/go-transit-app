@@ -18,6 +18,7 @@ interface AppState {
   favouriteJourneys: FavouriteJourney[];
   theme: "light" | "dark" | "system";
   gtfsVersion: string | null;
+  commuteBufferMinutes: number;
   // Session-only: set by global search to pre-fill Journey Planner FROM field
   pendingFromStop: SavedStation | null;
 
@@ -28,6 +29,7 @@ interface AppState {
   removeFavouriteJourney: (id: string) => void;
   setTheme: (theme: "light" | "dark" | "system") => void;
   setGtfsVersion: (version: string) => void;
+  setCommuteBufferMinutes: (mins: number) => void;
   setPendingFromStop: (stop: SavedStation | null) => void;
   hydrate: () => Promise<void>;
 }
@@ -38,6 +40,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   favouriteJourneys: [],
   theme: "system",
   gtfsVersion: null,
+  commuteBufferMinutes: 0,
   pendingFromStop: null,
 
   setHomeStation: async (station) => {
@@ -89,15 +92,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     await AsyncStorage.setItem("gtfs_version", version);
   },
 
+  setCommuteBufferMinutes: async (mins) => {
+    set({ commuteBufferMinutes: mins });
+    await AsyncStorage.setItem("commute_buffer", String(mins));
+  },
+
   setPendingFromStop: (stop) => set({ pendingFromStop: stop }),
 
   hydrate: async () => {
-    const [homeRaw, savedRaw, favsRaw, theme, gtfsVersion] = await Promise.all([
+    const [homeRaw, savedRaw, favsRaw, theme, gtfsVersion, bufferRaw] = await Promise.all([
       AsyncStorage.getItem("home_station"),
       AsyncStorage.getItem("saved_stations"),
       AsyncStorage.getItem("favourite_journeys"),
       AsyncStorage.getItem("theme"),
       AsyncStorage.getItem("gtfs_version"),
+      AsyncStorage.getItem("commute_buffer"),
     ]);
 
     set({
@@ -106,6 +115,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       favouriteJourneys: favsRaw ? JSON.parse(favsRaw) : [],
       theme: (theme as AppState["theme"]) ?? "system",
       gtfsVersion: gtfsVersion ?? null,
+      commuteBufferMinutes: bufferRaw ? parseInt(bufferRaw, 10) : 0,
     });
   },
 }));

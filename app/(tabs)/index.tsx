@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { api, type Alert } from "@/lib/api";
 import { useAppStore } from "@/store/useAppStore";
+import { updateWidgetData } from "@/tasks/widgetTask";
 import { DepartureCard } from "@/components/ui/DepartureCard";
 import { useTheme } from "@/hooks/useTheme";
 import { router } from "expo-router";
@@ -185,7 +186,7 @@ function ConnectionsSection({ stopId }: { stopId: string }) {
 export default function HomeScreen() {
   const t = useTheme();
   const { hPad } = useLayout();
-  const { homeStation, hydrate } = useAppStore();
+  const { homeStation, hydrate, commuteBufferMinutes } = useAppStore();
   const [dirFilter, setDirFilter] = useState<number | null>(null);
   const [lastTrainDismissed, setLastTrainDismissed] = useState(false);
 
@@ -200,6 +201,13 @@ export default function HomeScreen() {
       enabled: !!homeStation,
       refetchInterval: 30_000,
     });
+
+  // Push latest departure to Android home screen widget after each poll
+  useEffect(() => {
+    if (data && homeStation) {
+      updateWidgetData(homeStation.stop_name, data.departures, commuteBufferMinutes).catch(() => {});
+    }
+  }, [data, homeStation, commuteBufferMinutes]);
 
   const { data: alertsData } = useQuery({
     queryKey: ["alerts"],
@@ -512,6 +520,7 @@ export default function HomeScreen() {
           <DepartureCard
             key={d.trip_id}
             departure={d}
+            bufferMinutes={commuteBufferMinutes}
             onPress={() =>
               router.push({
                 pathname: "/departure-detail" as any,

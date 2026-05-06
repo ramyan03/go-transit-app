@@ -280,6 +280,26 @@ export interface FareBulkResponse {
   payment: string;
 }
 
+export interface VehiclePosition {
+  vehicle_id: string;
+  vehicle_label: string | null;
+  trip_id: string;
+  route_id: string;
+  route_short_name: string;
+  latitude: number;
+  longitude: number;
+  bearing: number | null;
+  speed_ms: number | null;
+  current_status: "stopped_at" | "incoming_at" | "in_transit_to";
+  stop_id: string | null;
+  timestamp: string;
+}
+
+export interface VehiclePositionsResponse {
+  generated_at: string;
+  vehicles: VehiclePosition[];
+}
+
 // ── API client ────────────────────────────────────────────────────────────────
 
 export const api = {
@@ -337,4 +357,6 @@ export const api = {
 
   fareBulk: (from: string, stop_ids: string[]) =>
     apiFetch<FareBulkResponse>("/fares/bulk", { from, stop_ids: stop_ids.join(",") }),
+
+  vehiclePositions: () => apiFetch<VehiclePositionsResponse>("/realtime/vehicles"),
 };

@@ -9,7 +9,7 @@ export interface StationNotice {
 // stopId must match the GO Transit 2-letter GTFS stop code.
 export const STATION_NOTICES: StationNotice[] = [
   {
-    stopId: "MK",
+    stopId: "MR",
     message: "Platform construction: cars 1–6 (front of train) accessible only.",
     type: "info",
   },
